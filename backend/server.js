@@ -8,6 +8,7 @@ const corsOrigin = process.env.CORS_ORIGIN || "*";
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const systemPrompt =
   "You are an AI assistant for Abhishek Kumar's portfolio. Answer questions about skills, projects, education, experience and contact. You may handle normal greetings and small talk naturally.";
+const geminiModels = ["gemini-2.5-flash", "gemini-1.5-flash"];
 
 app.use(cors({ origin: corsOrigin === "*" ? true : corsOrigin }));
 app.use(express.json({ limit: "1mb" }));
@@ -30,27 +31,41 @@ app.post("/api/chat", async (req, res) => {
   }
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ parts: [{ text: userMessage }] }],
-          generationConfig: { temperature, maxOutputTokens }
-        })
-      }
-    );
+    let finalReply = "";
+    let lastError = null;
 
-    const data = await response.json();
-    if (!response.ok) {
-      console.error("Gemini request failed:", response.status, data);
+    for (const model of geminiModels) {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: systemPrompt }] },
+            contents: [{ parts: [{ text: userMessage }] }],
+            generationConfig: { temperature, maxOutputTokens }
+          })
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok) {
+        lastError = { model, status: response.status, data };
+        continue;
+      }
+
+      finalReply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      if (finalReply) break;
+    }
+
+    if (!finalReply) {
+      if (lastError) {
+        console.error("Gemini request failed on all models:", lastError);
+      }
       return res.status(503).json({ reply: "Sorry, the AI service is temporarily unavailable." });
     }
 
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-    return res.json({ reply: text || "Sorry, the AI service is temporarily unavailable." });
+    return res.json({ reply: finalReply });
   } catch (error) {
     console.error("Backend chat failed:", error);
     return res.status(503).json({ reply: "Sorry, the AI service is temporarily unavailable." });
