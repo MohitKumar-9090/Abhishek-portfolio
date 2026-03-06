@@ -3,8 +3,76 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Modern AI-powered developer portfolio built with React and Vite." />
-    <title>Developer Portfolio</title>
+    <title>Abhishek Kumar | Software Developer Portfolio</title>
+    <meta
+      name="description"
+      content="Abhishek Kumar's AI-powered software developer portfolio featuring skills, projects, education, experience, and contact details."
+    />
+    <meta
+      name="keywords"
+      content="Abhishek Kumar, software developer, web developer, React developer, JavaScript, portfolio, AI portfolio assistant, frontend, backend"
+    />
+    <meta name="author" content="Abhishek Kumar" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+    <meta name="googlebot" content="index, follow" />
+    <meta name="theme-color" content="#0ea5e9" />
+    <link rel="canonical" href="https://your-domain.vercel.app/" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Abhishek Kumar | Software Developer Portfolio" />
+    <meta
+      property="og:description"
+      content="Explore Abhishek Kumar's projects, skills, experience, and AI-powered portfolio assistant."
+    />
+    <meta property="og:url" content="https://your-domain.vercel.app/" />
+    <meta property="og:site_name" content="Abhishek Kumar Portfolio" />
+    <meta property="og:locale" content="en_US" />
+    <meta property="og:image" content="https://your-domain.vercel.app/profile-photo.jpeg" />
+    <meta property="og:image:alt" content="Abhishek Kumar profile photo" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Abhishek Kumar | Software Developer Portfolio" />
+    <meta
+      name="twitter:description"
+      content="AI-powered portfolio with projects, skills, education, and experience."
+    />
+    <meta name="twitter:image" content="https://your-domain.vercel.app/profile-photo.jpeg" />
+
+    <meta name="google-site-verification" content="%VITE_GSC_VERIFICATION%" />
+
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "Person",
+        "name": "Abhishek Kumar",
+        "jobTitle": "Software Developer",
+        "url": "https://your-domain.vercel.app/",
+        "image": "https://your-domain.vercel.app/profile-photo.jpeg",
+        "sameAs": [
+          "https://github.com/abhishekgfg?tab=repositories",
+          "https://www.linkedin.com/in/abhishek-kumar-847b74241/"
+        ]
+      }
+    </script>
+
+    <script>
+      (function initializeAnalytics(id) {
+        if (!id || id === "G-XXXXXXXXXX" || id.includes("VITE_")) return;
+
+        var gtagScript = document.createElement("script");
+        gtagScript.async = true;
+        gtagScript.src = "https://www.googletagmanager.com/gtag/js?id=" + id;
+        document.head.appendChild(gtagScript);
+
+        window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          window.dataLayer.push(arguments);
+        }
+        gtag("js", new Date());
+        gtag("config", id);
+        window.gtag = gtag;
+      })("%VITE_FIREBASE_MEASUREMENT_ID%");
+    </script>
   </head>
   <body>
     <div id="root"></div>
