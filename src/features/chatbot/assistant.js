@@ -83,6 +83,7 @@ export function detectIntent(message) {
   if (["github", "git hub", "repo", "repositories"].some(has)) return "github";
   if (["linkedin", "linked in"].some(has)) return "linkedin";
   if (["contact", "reach", "connect"].some(has)) return "contact";
+  if (["about", "about abhishek", "introduce", "introduction", "who are you", "who is abhishek", "profile", "summary"].some(has)) return "about";
   if (["project", "projects", "portfolio", "built", "build"].some(has)) return "projects";
   if (["skills", "skill", "tech", "technology", "stack"].some(has)) return "skills";
   if (["experience", "intern", "work"].some(has)) return "experience";
@@ -187,6 +188,9 @@ function pickFirst(list, fallback = "Not available") {
 
 export function buildLocalContextualFallback(userMessage, language, intent, data) {
   const contact = data.contact || {};
+  const raw = userMessage.toLowerCase().trim();
+  const words = tokenizeWords(raw);
+  const has = (value) => hasPhraseOrWord(raw, words, value);
 
   if (intent === "phone" && contact.phone) return contact.phone;
   if (intent === "email" && contact.email) return contact.email;
@@ -213,9 +217,15 @@ export function buildLocalContextualFallback(userMessage, language, intent, data
     return language === "english" ? `Experience: ${expLine}` : `Experience: ${expLine}`;
   }
 
-  const lower = userMessage.toLowerCase();
+  if (intent === "about") {
+    const name = data.name || "Abhishek Kumar";
+    const role = data.role || "Developer";
+    const summary = data.summary || "He builds practical web projects and keeps improving across full-stack development.";
+    return `${name} is a ${role}. ${summary}`;
+  }
+
   const smallTalk = ["hi", "hello", "hii", "hey", "kaise", "ka haal", "how are you"];
-  if (smallTalk.some((token) => lower.includes(token))) {
+  if (smallTalk.some((token) => has(token))) {
     if (language === "hindi") return "Main theek hoon. Aap Abhishek ke portfolio me kya dekhna chahenge?";
     if (language === "bhojpuri") return "Ham thik bani. Rauri Abhishek ke portfolio se ka janana chahat bani?";
     return "I am doing well. What would you like to know from Abhishek's portfolio?";

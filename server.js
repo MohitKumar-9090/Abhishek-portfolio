@@ -48,12 +48,12 @@ const server = http.createServer(async (req, res) => {
     try {
       const raw = await readBody(req);
       const body = raw ? JSON.parse(raw) : {};
-      const prompt = String(body?.prompt || "").trim();
+      const userMessage = String(body?.message || body?.prompt || "").trim();
       const temperature = Number(body?.temperature ?? 0.3);
       const maxOutputTokens = Number(body?.maxOutputTokens ?? 1000);
 
-      if (!prompt) {
-        sendJson(res, 400, { error: "prompt is required" }, allowOrigin);
+      if (!userMessage) {
+        sendJson(res, 400, { error: "message is required" }, allowOrigin);
         return;
       }
       if (!geminiApiKey) {
@@ -67,7 +67,7 @@ const server = http.createServer(async (req, res) => {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
+            contents: [{ parts: [{ text: userMessage }] }],
             generationConfig: { temperature, maxOutputTokens }
           })
         }
@@ -88,7 +88,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      sendJson(res, 200, { text }, allowOrigin);
+      sendJson(res, 200, { reply: text, text }, allowOrigin);
       return;
     } catch (error) {
       sendJson(
@@ -111,4 +111,3 @@ server.listen(port, () => {
   // eslint-disable-next-line no-console
   console.log(`Backend listening on port ${port}`);
 });
-

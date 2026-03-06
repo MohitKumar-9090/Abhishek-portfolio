@@ -42,6 +42,110 @@ const fadeUp = {
   visible: { opacity: 1, y: 0 }
 };
 
+const sectionNavigationAliases = [
+  { id: "hero", label: "Home", aliases: ["home", "hero", "top", "start"] },
+  { id: "about", label: "About", aliases: ["about"] },
+  { id: "education", label: "Education", aliases: ["education", "study", "college", "school"] },
+  { id: "skills", label: "Skills", aliases: ["skills", "skill", "tech stack", "technology"] },
+  { id: "projects", label: "Projects", aliases: ["project", "projects", "portfolio"] },
+  { id: "experience", label: "Experience", aliases: ["experience", "work", "internship", "achievements"] },
+  { id: "github", label: "GitHub", aliases: ["github", "git hub", "repo", "repositories"] },
+  { id: "reviews", label: "Reviews", aliases: ["review", "reviews", "feedback"] },
+  {
+    id: "analytics",
+    label: "Analytics",
+    aliases: ["analytics", "analyzer", "anylzer", "anaylzer", "analysis", "visitor analytics"]
+  },
+  { id: "contact", label: "Contact", aliases: ["contact", "reach", "connect"] }
+];
+
+const LOCAL_ANALYTICS_KEY = "portfolio_local_analytics";
+
+function detectNavigationTarget(prompt) {
+  const normalized = prompt
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!normalized) return null;
+
+  const navigationTriggers = [
+    "visit",
+    "go to",
+    "open",
+    "show",
+    "take me to",
+    "navigate",
+    "scroll to"
+  ];
+
+  const isNavigationRequest = navigationTriggers.some((trigger) => normalized.includes(trigger));
+  if (!isNavigationRequest) return null;
+
+  return sectionNavigationAliases.find((section) =>
+    section.aliases.some((alias) => normalized.includes(alias))
+  );
+}
+
+function readLocalAnalytics() {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(LOCAL_ANALYTICS_KEY) || "{}");
+    return {
+      totalVisitors: Number(parsed.totalVisitors || 0),
+      pageViews: Number(parsed.pageViews || 0),
+      sections: parsed.sections && typeof parsed.sections === "object" ? parsed.sections : {}
+    };
+  } catch (_error) {
+    return { totalVisitors: 0, pageViews: 0, sections: {} };
+  }
+}
+
+function saveLocalAnalytics(nextAnalytics) {
+  localStorage.setItem(LOCAL_ANALYTICS_KEY, JSON.stringify(nextAnalytics));
+}
+
+function mergeAnalytics(remote, local) {
+  const mergedSections = {};
+  const keys = new Set([
+    ...Object.keys(remote?.sections || {}),
+    ...Object.keys(local?.sections || {})
+  ]);
+
+  keys.forEach((key) => {
+    mergedSections[key] = Math.max(Number(remote?.sections?.[key] || 0), Number(local?.sections?.[key] || 0));
+  });
+
+  return {
+    totalVisitors: Math.max(Number(remote?.totalVisitors || 0), Number(local?.totalVisitors || 0)),
+    pageViews: Math.max(Number(remote?.pageViews || 0), Number(local?.pageViews || 0)),
+    sections: mergedSections
+  };
+}
+
+function ResilientImage({ sources, alt, className }) {
+  const [index, setIndex] = useState(0);
+  const src = sources[index];
+
+  if (!src) {
+    return (
+      <div className="grid min-h-40 place-items-center rounded-xl border border-white/10 bg-slate-950/80 p-4 text-sm text-slate-300">
+        {alt}
+      </div>
+    );
+  }
+
+  return (
+    <img
+      loading="lazy"
+      src={src}
+      alt={alt}
+      className={className}
+      onError={() => setIndex((prev) => prev + 1)}
+    />
+  );
+}
+
 function Section({ id, title, subtitle, action, children }) {
   return (
     <motion.section
@@ -174,19 +278,37 @@ function useTypingText(words, speed = 110, pause = 1200) {
 }
 
 function useAnalyticsTracking() {
-  const [analytics, setAnalytics] = useState({
-    totalVisitors: 0,
-    pageViews: 0,
-    sections: {}
-  });
+  const [analytics, setAnalytics] = useState(() => readLocalAnalytics());
 
   useEffect(() => {
     const visitorKey = "portfolio_visitor_key";
-    if (!localStorage.getItem(visitorKey)) {
+    const isNewVisitor = !localStorage.getItem(visitorKey);
+    if (isNewVisitor) {
       localStorage.setItem(visitorKey, crypto.randomUUID());
-      runTransaction(ref(db, "analytics/totalVisitors"), (val) => (val || 0) + 1);
     }
-    runTransaction(ref(db, "analytics/pageViews"), (val) => (val || 0) + 1);
+
+    const localSnapshot = readLocalAnalytics();
+    const localBootstrap = {
+      ...localSnapshot,
+      totalVisitors: localSnapshot.totalVisitors + (isNewVisitor ? 1 : 0),
+      pageViews: localSnapshot.pageViews + 1
+    };
+    saveLocalAnalytics(localBootstrap);
+    setAnalytics(localBootstrap);
+
+    const incrementRemote = (path) => {
+      try {
+        const tx = runTransaction(ref(db, path), (val) => (val || 0) + 1);
+        if (tx?.catch) {
+          tx.catch(() => undefined);
+        }
+      } catch (_error) {
+        // Keep local analytics even if Firebase is unreachable or blocked by rules.
+      }
+    };
+
+    if (isNewVisitor) incrementRemote("analytics/totalVisitors");
+    incrementRemote("analytics/pageViews");
 
     const viewed = new Set();
     const observer = new IntersectionObserver(
@@ -196,7 +318,18 @@ function useAnalyticsTracking() {
           const id = entry.target.getAttribute("data-track");
           if (!id || viewed.has(id)) return;
           viewed.add(id);
-          runTransaction(ref(db, `analytics/sections/${id}`), (val) => (val || 0) + 1);
+
+          const currentLocal = readLocalAnalytics();
+          const nextLocal = {
+            ...currentLocal,
+            sections: {
+              ...currentLocal.sections,
+              [id]: Number(currentLocal.sections?.[id] || 0) + 1
+            }
+          };
+          saveLocalAnalytics(nextLocal);
+          setAnalytics((prev) => mergeAnalytics(prev, nextLocal));
+          incrementRemote(`analytics/sections/${id}`);
         });
       },
       { threshold: 0.5 }
@@ -204,14 +337,17 @@ function useAnalyticsTracking() {
 
     document.querySelectorAll("[data-track]").forEach((el) => observer.observe(el));
 
-    const unsub = onValue(ref(db, "analytics"), (snap) => {
-      const data = snap.val() || {};
-      setAnalytics({
-        totalVisitors: data.totalVisitors || 0,
-        pageViews: data.pageViews || 0,
-        sections: data.sections || {}
-      });
-    });
+    const unsub = onValue(
+      ref(db, "analytics"),
+      (snap) => {
+        const remoteData = snap.val() || {};
+        const localData = readLocalAnalytics();
+        setAnalytics(mergeAnalytics(remoteData, localData));
+      },
+      () => {
+        setAnalytics(readLocalAnalytics());
+      }
+    );
 
     return () => {
       observer.disconnect();
@@ -808,6 +944,21 @@ function App() {
     };
 
     try {
+      const navTarget = detectNavigationTarget(prompt);
+      if (navTarget) {
+        const sectionNode = document.getElementById(navTarget.id);
+        const botReply = sectionNode
+          ? `Opening ${navTarget.label} section.`
+          : `I could not find the ${navTarget.label} section right now.`;
+
+        if (sectionNode) {
+          sectionNode.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+        await animateBotText(botReply);
+        setMessages((prev) => [...prev, { role: "bot", text: botReply }]);
+        return;
+      }
+
       const response = await askGemini(
         buildGeminiPrompt(dynamicPortfolioData, recentConversation, prompt, detectedIntent, languageTone)
       );
@@ -1222,17 +1373,23 @@ function App() {
 
         <Section id="github" title="GitHub" subtitle="Contribution graph and profile stats placeholders.">
           <div className="grid gap-4 lg:grid-cols-2">
-            <img
-              loading="lazy"
+            <ResilientImage
               className="w-full rounded-xl border border-white/10 bg-slate-950 p-2"
-              src="https://ghchart.rshah.org/00ffff/abhishekgfg"
-              alt="GitHub contribution graph placeholder"
+              alt="GitHub contribution graph"
+              sources={[
+                "https://ghchart.rshah.org/00ffff/abhishekgfg",
+                "https://ghchart.rshah.org/abhishekgfg",
+                "https://github-readme-activity-graph.vercel.app/graph?username=abhishekgfg&theme=react-dark&hide_border=true"
+              ]}
             />
-            <img
-              loading="lazy"
+            <ResilientImage
               className="w-full rounded-xl border border-white/10 bg-slate-950 p-2"
-              src="https://github-readme-stats.vercel.app/api?username=abhishekgfg&show_icons=true&theme=tokyonight"
-              alt="GitHub stats placeholder"
+              alt="GitHub stats card"
+              sources={[
+                "https://github-readme-stats.vercel.app/api?username=abhishekgfg&show_icons=true&theme=tokyonight",
+                "https://github-readme-stats-git-masterrstaa-rickstaa.vercel.app/api?username=abhishekgfg&show_icons=true&theme=tokyonight",
+                "https://github-profile-summary-cards.vercel.app/api/cards/stats?username=abhishekgfg&theme=github_dark"
+              ]}
             />
           </div>
         </Section>

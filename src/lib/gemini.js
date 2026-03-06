@@ -1,48 +1,23 @@
-import { GEMINI_API_KEY } from "../config";
-
 export async function askGemini(prompt) {
-  const backendUrl = import.meta.env.VITE_CHAT_API_URL;
+  const backendUrl = import.meta.env.VITE_CHAT_API_URL?.replace(/\/$/, "") || "";
+  const endpoint = backendUrl ? `${backendUrl}/api/chat` : "/api/chat";
 
-  if (backendUrl) {
-    const response = await fetch(`${backendUrl.replace(/\/$/, "")}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        prompt,
-        temperature: 0.3,
-        maxOutputTokens: 1000
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Backend chat error ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data?.text || "";
-  }
-
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 1000
-        }
-      })
-    }
-  );
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      message: prompt,
+      temperature: 0.3,
+      maxOutputTokens: 1000
+    })
+  });
 
   if (!response.ok) {
-    throw new Error(`Gemini error ${response.status}`);
+    throw new Error(`Backend chat error ${response.status}`);
   }
 
   const data = await response.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  return data?.reply || data?.text || "";
 }
 
 export function parseJsonBlock(text) {
