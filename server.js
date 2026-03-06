@@ -3,6 +3,8 @@ import http from "node:http";
 const port = Number(process.env.PORT || 10000);
 const corsOrigin = process.env.CORS_ORIGIN || "*";
 const geminiApiKey = process.env.GEMINI_API_KEY;
+const systemPrompt =
+  "You are an AI assistant for Abhishek Kumar's portfolio. Answer questions about skills, projects, education, experience and contact. You may handle normal greetings and small talk naturally.";
 
 function sendJson(res, status, body, origin = "*") {
   res.writeHead(status, {
@@ -62,11 +64,14 @@ const server = http.createServer(async (req, res) => {
       }
 
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiApiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiApiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            systemInstruction: {
+              parts: [{ text: systemPrompt }]
+            },
             contents: [{ parts: [{ text: userMessage }] }],
             generationConfig: { temperature, maxOutputTokens }
           })
@@ -75,31 +80,15 @@ const server = http.createServer(async (req, res) => {
 
       const data = await response.json();
       if (!response.ok) {
-        sendJson(
-          res,
-          response.status,
-          {
-            error: "Gemini request failed",
-            details: data
-          },
-          allowOrigin
-        );
+        sendJson(res, 503, { reply: "Sorry, the AI service is temporarily unavailable." }, allowOrigin);
         return;
       }
 
       const text = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      sendJson(res, 200, { reply: text, text }, allowOrigin);
+      sendJson(res, 200, { reply: text || "Sorry, the AI service is temporarily unavailable." }, allowOrigin);
       return;
     } catch (error) {
-      sendJson(
-        res,
-        500,
-        {
-          error: "Backend chat failed",
-          details: error instanceof Error ? error.message : String(error)
-        },
-        allowOrigin
-      );
+      sendJson(res, 503, { reply: "Sorry, the AI service is temporarily unavailable." }, allowOrigin);
       return;
     }
   }

@@ -27,13 +27,6 @@ import { addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query a
 import { askGemini } from "./lib/gemini";
 import { db, firestore } from "./lib/firebase";
 import { emailJsConfig } from "./config";
-import {
-  buildGeminiPrompt,
-  buildLocalContextualFallback,
-  detectIntent,
-  detectLanguageTone,
-  extractPortfolioDataFromDom
-} from "./features/chatbot/assistant";
 import { getLocalItems, LOCAL_PROJECTS_KEY, LOCAL_REVIEWS_KEY, mergeByKey, saveLocalItems } from "./features/storage/localStore";
 import { achievements, developer, education, experience, extracurricular, projects, roles, skills } from "./data";
 
@@ -42,51 +35,7 @@ const fadeUp = {
   visible: { opacity: 1, y: 0 }
 };
 
-const sectionNavigationAliases = [
-  { id: "hero", label: "Home", aliases: ["home", "hero", "top", "start"] },
-  { id: "about", label: "About", aliases: ["about"] },
-  { id: "education", label: "Education", aliases: ["education", "study", "college", "school"] },
-  { id: "skills", label: "Skills", aliases: ["skills", "skill", "tech stack", "technology"] },
-  { id: "projects", label: "Projects", aliases: ["project", "projects", "portfolio"] },
-  { id: "experience", label: "Experience", aliases: ["experience", "work", "internship", "achievements"] },
-  { id: "github", label: "GitHub", aliases: ["github", "git hub", "repo", "repositories"] },
-  { id: "reviews", label: "Reviews", aliases: ["review", "reviews", "feedback"] },
-  {
-    id: "analytics",
-    label: "Analytics",
-    aliases: ["analytics", "analyzer", "anylzer", "anaylzer", "analysis", "visitor analytics"]
-  },
-  { id: "contact", label: "Contact", aliases: ["contact", "reach", "connect"] }
-];
-
 const LOCAL_ANALYTICS_KEY = "portfolio_local_analytics";
-
-function detectNavigationTarget(prompt) {
-  const normalized = prompt
-    .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  if (!normalized) return null;
-
-  const navigationTriggers = [
-    "visit",
-    "go to",
-    "open",
-    "show",
-    "take me to",
-    "navigate",
-    "scroll to"
-  ];
-
-  const isNavigationRequest = navigationTriggers.some((trigger) => normalized.includes(trigger));
-  if (!isNavigationRequest) return null;
-
-  return sectionNavigationAliases.find((section) =>
-    section.aliases.some((alias) => normalized.includes(alias))
-  );
-}
 
 function readLocalAnalytics() {
   try {
@@ -641,7 +590,7 @@ function App() {
   const [messages, setMessages] = useState([
     {
       role: "bot",
-      text: "Hi! Main Abhishek Kumar ka AI portfolio assistant hoon. Ask me about skills, projects, education, experience, or contact."
+      text: "Hi! Ask me anything."
     }
   ]);
   const [reviews, setReviews] = useState([]);
@@ -925,43 +874,8 @@ function App() {
     setChatInput("");
     setChatLoading(true);
 
-    const languageTone = detectLanguageTone(prompt);
-    const detectedIntent = detectIntent(prompt);
-    const recentConversation = messages
-      .slice(-8)
-      .map((item) => `${item.role === "user" ? "User" : "Assistant"}: ${item.text}`)
-      .join("\n");
-    const extractedPortfolioData = extractPortfolioDataFromDom();
-    const dynamicPortfolioData = {
-      ...extractedPortfolioData,
-      liveMetrics: {
-        totalProjects: allProjects.length,
-        totalReviews: reviews.length,
-        totalVisitors: analytics.totalVisitors,
-        pageViews: analytics.pageViews,
-        topSections: sectionRanking.slice(0, 5).map(([section, count]) => ({ section, views: count }))
-      }
-    };
-
     try {
-      const navTarget = detectNavigationTarget(prompt);
-      if (navTarget) {
-        const sectionNode = document.getElementById(navTarget.id);
-        const botReply = sectionNode
-          ? `Opening ${navTarget.label} section.`
-          : `I could not find the ${navTarget.label} section right now.`;
-
-        if (sectionNode) {
-          sectionNode.scrollIntoView({ behavior: "smooth", block: "start" });
-        }
-        await animateBotText(botReply);
-        setMessages((prev) => [...prev, { role: "bot", text: botReply }]);
-        return;
-      }
-
-      const response = await askGemini(
-        buildGeminiPrompt(dynamicPortfolioData, recentConversation, prompt, detectedIntent, languageTone)
-      );
+      const response = await askGemini(prompt);
       const content = response?.trim();
       if (!content) {
         throw new Error("Empty Gemini response");
@@ -969,7 +883,7 @@ function App() {
       await animateBotText(content);
       setMessages((prev) => [...prev, { role: "bot", text: content }]);
     } catch (error) {
-      const fallback = buildLocalContextualFallback(prompt, languageTone, detectedIntent, dynamicPortfolioData);
+      const fallback = "Sorry, the AI service is temporarily unavailable.";
       await animateBotText(fallback);
       setMessages((prev) => [...prev, { role: "bot", text: fallback }]);
       console.error(error);

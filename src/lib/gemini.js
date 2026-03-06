@@ -13,7 +13,16 @@ export async function askGemini(prompt) {
   });
 
   if (!response.ok) {
-    throw new Error(`Backend chat error ${response.status}`);
+    let message = `Backend chat error ${response.status}`;
+    try {
+      const errorData = await response.json();
+      if (errorData?.reply) {
+        message = errorData.reply;
+      }
+    } catch (_error) {
+      // Ignore JSON parse failures for non-JSON error payloads.
+    }
+    throw new Error(message);
   }
 
   const data = await response.json();
