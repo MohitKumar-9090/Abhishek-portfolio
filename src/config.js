@@ -1,5 +1,5 @@
 export const GEMINI_API_KEY =
-  import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyACiCkJFaeXu12n9JGkO_eesTKFQtYH3bI";
+  import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyBOevbLfqKYGvKueJZw2-tS3zCrLBIifqk";
 
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB0Fbn3rGfK9UNDg2wWwNYVW4cicyVciRc",
