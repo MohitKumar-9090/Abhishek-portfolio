@@ -8,7 +8,33 @@ const corsOrigin = process.env.CORS_ORIGIN || "*";
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const systemPrompt =
   "You are an AI assistant for Abhishek Kumar's portfolio. Answer questions about skills, projects, education, experience and contact. You may handle normal greetings and small talk naturally.";
-const geminiModels = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"];
+const preferredModelOrder = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
+
+async function resolveAvailableModels(apiKey) {
+  const listResponse = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`,
+    { method: "GET" }
+  );
+  const listData = await listResponse.json();
+
+  if (!listResponse.ok) {
+    throw new Error(
+      `ListModels failed (${listResponse.status}): ${listData?.error?.message || "Unknown error"}`
+    );
+  }
+
+  const available = (listData?.models || [])
+    .filter((model) => (model?.supportedGenerationMethods || []).includes("generateContent"))
+    .map((model) => (model?.name || "").replace(/^models\//, ""))
+    .filter(Boolean);
+
+  if (!available.length) {
+    throw new Error("No models with generateContent support returned by ListModels");
+  }
+
+  const preferred = preferredModelOrder.filter((model) => available.includes(model));
+  return preferred.length ? preferred : available;
+}
 
 app.use(cors({ origin: corsOrigin === "*" ? true : corsOrigin }));
 app.use(express.json({ limit: "1mb" }));
@@ -19,7 +45,7 @@ app.get("/health", (_req, res) => {
     service: "portfolio-b-backend",
     hasGeminiKey: Boolean(geminiApiKey),
     commit: process.env.RENDER_GIT_COMMIT || "unknown",
-    models: geminiModels
+    preferredModels: preferredModelOrder
   });
 });
 
@@ -37,10 +63,11 @@ app.post("/api/chat", async (req, res) => {
   }
 
   try {
+    const candidateModels = await resolveAvailableModels(geminiApiKey);
     let finalReply = "";
-    let lastError = null;
+    const modelErrors = [];
 
-    for (const model of geminiModels) {
+    for (const model of candidateModels) {
       const response = await fetch(
         `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${geminiApiKey}`,
         {
@@ -56,7 +83,7 @@ app.post("/api/chat", async (req, res) => {
 
       const data = await response.json();
       if (!response.ok) {
-        lastError = { model, status: response.status, data };
+        modelErrors.push({ model, status: response.status, data });
         continue;
       }
 
@@ -65,8 +92,8 @@ app.post("/api/chat", async (req, res) => {
     }
 
     if (!finalReply) {
-      if (lastError) {
-        console.error("Gemini request failed on all models:", lastError);
+      if (modelErrors.length) {
+        console.error("Gemini request failed on all models:", modelErrors);
       }
       return res.status(503).json({ reply: "Sorry, the AI service is temporarily unavailable." });
     }
