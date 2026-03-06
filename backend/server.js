@@ -17,7 +17,9 @@ app.get("/health", (_req, res) => {
   res.json({
     ok: true,
     service: "portfolio-b-backend",
-    hasGeminiKey: Boolean(geminiApiKey)
+    hasGeminiKey: Boolean(geminiApiKey),
+    commit: process.env.RENDER_GIT_COMMIT || "unknown",
+    models: geminiModels
   });
 });
 
