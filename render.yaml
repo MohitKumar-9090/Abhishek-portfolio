@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: portfolio-b-backend
+    runtime: node
+    rootDir: backend
+    buildCommand: npm install
+    startCommand: npm start
+    plan: free
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
