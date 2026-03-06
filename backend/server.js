@@ -8,13 +8,17 @@ const corsOrigin = process.env.CORS_ORIGIN || "*";
 const geminiApiKey = process.env.GEMINI_API_KEY;
 const systemPrompt =
   "You are an AI assistant for Abhishek Kumar's portfolio. Answer questions about skills, projects, education, experience and contact. You may handle normal greetings and small talk naturally.";
-const geminiModels = ["gemini-2.5-flash", "gemini-1.5-flash"];
+const geminiModels = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-flash-8b"];
 
 app.use(cors({ origin: corsOrigin === "*" ? true : corsOrigin }));
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "portfolio-b-backend" });
+  res.json({
+    ok: true,
+    service: "portfolio-b-backend",
+    hasGeminiKey: Boolean(geminiApiKey)
+  });
 });
 
 app.post("/api/chat", async (req, res) => {
