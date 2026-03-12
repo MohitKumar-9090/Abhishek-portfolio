@@ -1,25 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
 import * as THREE from "three";
 import emailjs from "@emailjs/browser";
-import {
-  ArrowDownToLine,
-  Bot,
-  Code2,
-  ExternalLink,
-  Github,
-  Linkedin,
-  Mail,
-  MapPin,
-  MessageSquare,
-  Phone,
-  Plus,
-  Send,
-  Sparkles,
-  Star,
-  Trash2,
-  X
-} from "lucide-react";
 import { onValue, ref, runTransaction } from "firebase/database";
 import { addDoc, collection, deleteDoc, doc, increment, limit, onSnapshot, orderBy, query as fsQuery, setDoc } from "firebase/firestore";
 import { askGemini } from "./lib/gemini";
@@ -27,11 +8,19 @@ import { db, firestore } from "./lib/firebase";
 import { emailJsConfig } from "./config";
 import { getLocalItems, LOCAL_PROJECTS_KEY, LOCAL_REVIEWS_KEY, mergeByKey, saveLocalItems } from "./features/storage/localStore";
 import { achievements, developer, education, experience, extracurricular, projects, roles, skills } from "./data";
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 30 },
-  visible: { opacity: 1, y: 0 }
-};
+import HeroSection from "./components/sections/HeroSection";
+import AboutSection from "./components/sections/AboutSection";
+import EducationSection from "./components/sections/EducationSection";
+import SkillsSection from "./components/sections/SkillsSection";
+import ProjectsSection from "./components/sections/ProjectsSection";
+import ExperienceSection from "./components/sections/ExperienceSection";
+import GithubSection from "./components/sections/GithubSection";
+import ReviewsSection from "./components/sections/ReviewsSection";
+import AnalyticsSection from "./components/sections/AnalyticsSection";
+import ContactSection from "./components/sections/ContactSection";
+import ProjectFormModal from "./components/modals/ProjectFormModal";
+import Footer from "./components/layout/Footer";
+import ChatWidget from "./components/chat/ChatWidget";
 
 const LOCAL_ANALYTICS_KEY = "portfolio_local_analytics";
 const ANALYTICS_DOC = ["analytics", "global"];
@@ -76,51 +65,6 @@ function mergeAnalytics(remote, local) {
     pageViews: Math.max(Number(remote?.pageViews || 0), Number(local?.pageViews || 0)),
     sections: mergedSections
   };
-}
-
-function ResilientImage({ sources, alt, className }) {
-  const [index, setIndex] = useState(0);
-  const src = sources[index];
-
-  if (!src) {
-    return (
-      <div className="grid min-h-40 place-items-center rounded-xl border border-white/10 bg-slate-950/80 p-4 text-sm text-slate-300">
-        {alt}
-      </div>
-    );
-  }
-
-  return (
-    <img
-      loading="lazy"
-      src={src}
-      alt={alt}
-      className={className}
-      onError={() => setIndex((prev) => prev + 1)}
-    />
-  );
-}
-
-function Section({ id, title, subtitle, action, children }) {
-  return (
-    <motion.section
-      id={id}
-      data-track={id}
-      variants={fadeUp}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount: 0.2 }}
-      transition={{ duration: 0.55 }}
-      className="mx-auto w-full max-w-6xl rounded-2xl border border-sky-200 bg-white/85 p-6 shadow-neon backdrop-blur md:p-8"
-    >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="font-heading text-2xl font-bold text-sky-900 md:text-3xl">{title}</h2>
-        {action ? <div>{action}</div> : null}
-      </div>
-      {subtitle ? <p className="mt-2 text-sky-700">{subtitle}</p> : null}
-      <div className="mt-6">{children}</div>
-    </motion.section>
-  );
 }
 
 function ThreeBackground() {
@@ -1034,761 +978,73 @@ function App() {
         </nav>
       </header>
 
-      <main className="space-y-8 px-4 py-8 md:px-6 md:py-10">
-        <section
-          id="hero"
-          data-track="hero"
-          className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-3xl border border-sky-200 bg-gradient-to-br from-slate-50 via-white to-sky-50 p-6 shadow-neon md:p-10"
-        >
-          <div className="pointer-events-none absolute -left-12 top-16 -z-10 h-44 w-44 rounded-full bg-sky-200/40 blur-3xl" />
-          <div className="pointer-events-none absolute right-0 top-0 -z-10 h-56 w-56 rounded-full bg-indigo-200/40 blur-3xl" />
-
-          <div className="grid items-start gap-8 lg:grid-cols-[1.32fr_0.9fr]">
-            <div>
-              <div className="mb-4 flex items-center gap-4">
-                <div className="relative rounded-full border-[3px] border-sky-300 bg-white p-1">
-                  <img
-                    src="/profile-photo.jpeg"
-                    alt="Profile"
-                    className="h-20 w-20 rounded-full object-cover object-top md:h-24 md:w-24"
-                  />
-                  <span className="absolute -right-1 top-2 h-3 w-3 rounded-full bg-blue-500" />
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-700">
-                  <Sparkles size={14} />
-                  Portfolio Profile
-                </div>
-              </div>
-
-              <h1 className="hero-name-title font-heading text-5xl font-extrabold leading-tight md:text-7xl">
-                {developer.name}
-              </h1>
-              <p className="mt-2 text-xl font-semibold text-slate-700 md:text-4xl">{developer.role}</p>
-              <p className="mt-3 inline-flex items-center gap-2 text-lg text-slate-600">
-                <MapPin size={18} />
-                {developer.location}
-              </p>
-
-              <p className="mt-4 max-w-3xl rounded-lg border border-dashed border-sky-200 bg-white px-4 py-2 text-lg font-medium text-slate-700">
-                Building Intelligent <span className="font-bold text-sky-700">AI Solutions</span> and modern web applications
-              </p>
-
-              <p className="mt-3 text-base font-semibold text-indigo-600">
-                {typedRole}
-                <span className="animate-pulse">|</span>
-              </p>
-
-              <div className="mt-4 flex flex-wrap gap-3 text-slate-700">
-                <a href="mailto:abhishek8579013@gmail.com" className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm">
-                  <Mail size={16} />
-                  abhishek8579013@gmail.com
-                </a>
-                <a href="tel:6202000340" className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm">
-                  <Phone size={16} />
-                  +91 6202000340
-                </a>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <article className="rounded-2xl border border-sky-200 bg-white p-4">
-                  <p className="text-sm font-semibold text-blue-700">{experience.company}</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-800">{experience.role}</p>
-                </article>
-                <article className="rounded-2xl border border-sky-200 bg-white p-4">
-                  <p className="text-sm font-semibold text-amber-600">{primaryEducation?.institute}</p>
-                  <p className="mt-1 text-2xl font-bold text-slate-800">{primaryEducation?.degree}</p>
-                </article>
-              </div>
-
-              <div className="mt-5 flex flex-wrap gap-3">
-                <a href="#projects" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 px-5 py-3 text-base font-semibold text-white">
-                  View Projects
-                  <ExternalLink size={16} />
-                </a>
-                <button
-                  type="button"
-                  onClick={handleResumeDownload}
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-base font-semibold text-white"
-                >
-                  <ArrowDownToLine size={16} />
-                  Download Resume
-                </button>
-              </div>
-
-              <div className="mt-5 grid gap-3 rounded-2xl border border-sky-200 bg-white p-3 sm:grid-cols-4">
-                {heroHighlights.map((item) => (
-                  <article key={item.label} className="rounded-lg border border-sky-100 bg-slate-50 px-3 py-2 text-center">
-                    <p className="text-2xl font-extrabold text-sky-700">{item.value}</p>
-                    <p className="text-xs font-semibold text-slate-600">{item.label}</p>
-                  </article>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative space-y-5">
-              <article className="rounded-3xl border border-sky-200 bg-white p-5 shadow-lg">
-                <h3 className="mb-4 inline-flex items-center gap-2 font-heading text-3xl font-bold text-slate-800">
-                  <Code2 size={22} className="text-sky-700" />
-                  Tech Stack
-                </h3>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {heroTechStack.map((tech) => (
-                    <p key={tech} className="rounded-xl border border-sky-100 bg-slate-50 px-3 py-2 text-base font-semibold text-slate-700">
-                      {tech}
-                    </p>
-                  ))}
-                </div>
-              </article>
-
-              <article className="ml-auto w-full max-w-[280px] rotate-3 rounded-[2rem] border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-5 shadow-lg">
-                <p className="text-2xl font-extrabold text-indigo-700">Resume</p>
-                <button
-                  type="button"
-                  onClick={handleResumeDownload}
-                  className="mt-3 inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-2 font-semibold text-indigo-700"
-                >
-                  <ArrowDownToLine size={16} />
-                  Download PDF
-                </button>
-                <ul className="mt-4 space-y-2 text-sm font-medium text-slate-600">
-                  <li>Education</li>
-                  <li>Projects</li>
-                  <li>Skills</li>
-                </ul>
-              </article>
-
-              <article className="relative hidden overflow-hidden rounded-3xl border border-sky-200/80 bg-gradient-to-br from-sky-100 via-white to-indigo-100 p-4 lg:block">
-                <motion.div
-                  className="pointer-events-none absolute -left-8 -top-8 h-28 w-28 rounded-full bg-cyan-400/30 blur-2xl"
-                  animate={{ scale: [1, 1.25, 1], opacity: [0.45, 0.8, 0.45] }}
-                  transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
-                />
-                <motion.div
-                  className="pointer-events-none absolute -bottom-10 right-2 h-32 w-32 rounded-full bg-indigo-400/25 blur-2xl"
-                  animate={{ scale: [1.2, 1, 1.2], opacity: [0.55, 0.25, 0.55] }}
-                  transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
-                />
-                <div className="h-full rounded-2xl border border-dashed border-sky-300/80 bg-white/70 p-4">
-                  <p className="text-sm font-semibold text-sky-700">MERN Focus</p>
-                  <div className="mt-3 space-y-2">
-                    {mernGraphData.map((item, index) => (
-                      <div key={item.name}>
-                        <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-slate-600">
-                          <span>{item.name}</span>
-                          <span>{item.score}%</span>
-                        </div>
-                        <div className="h-2 rounded-full bg-sky-100">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            whileInView={{ width: `${item.score}%` }}
-                            viewport={{ once: true, amount: 0.7 }}
-                            transition={{ duration: 0.9, delay: index * 0.08 }}
-                            className={`h-2 rounded-full bg-gradient-to-r ${item.tone}`}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-4 rounded-xl border border-sky-200 bg-white/80 p-2">
-                    <svg viewBox="0 0 220 50" className="h-12 w-full">
-                      <polyline fill="none" stroke="#0ea5e9" strokeWidth="3" points="0,38 45,30 95,34 145,22 220,16" />
-                      <polyline fill="none" stroke="#4f46e5" strokeWidth="2.4" points="0,42 45,36 95,28 145,26 220,20" />
-                      {[0, 45, 95, 145, 220].map((x) => (
-                        <circle key={x} cx={x} cy={x === 145 ? 22 : x === 220 ? 16 : x === 45 ? 30 : x === 95 ? 34 : 38} r="2.6" fill="#06b6d4" />
-                      ))}
-                    </svg>
-                  </div>
-                </div>
-                {[...Array(10)].map((_, i) => (
-                  <motion.span
-                    key={`particle-${i}`}
-                    className="pointer-events-none absolute h-1.5 w-1.5 rounded-full bg-cyan-400/70"
-                    style={{ left: `${8 + i * 9}%`, bottom: `${6 + (i % 4) * 8}%` }}
-                    animate={{ y: [0, -10, 0], opacity: [0.25, 0.9, 0.25] }}
-                    transition={{ duration: 1.8 + (i % 3) * 0.5, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
-                  />
-                ))}
-              </article>
-            </div>
-          </div>
-        </section>
-
-        <Section id="about" title="About" subtitle={developer.role}>
-          <p className="leading-7 text-slate-300">
-            {developer.summary}
-          </p>
-        </Section>
-
-        <Section id="education" title="Education" subtitle="Academic background">
-          <div className="grid gap-3 md:grid-cols-3">
-            {education.map((item) => (
-              <article key={`${item.degree}-${item.institute}`} className="rounded-xl border border-white/10 bg-slate-800/70 p-4">
-                <h3 className="font-heading text-base text-white">{item.degree}</h3>
-                <p className="mt-1 text-sm text-slate-300">{item.institute}</p>
-                <p className="text-sm text-slate-400">{item.location}</p>
-                {item.year ? <p className="mt-1 text-xs text-cyan-200">{item.year}</p> : null}
-              </article>
-            ))}
-          </div>
-        </Section>
-
-        <Section id="skills" title="My Skills" subtitle="MERN stack focused profile with supporting technologies.">
-          <div className="grid gap-5 lg:grid-cols-2">
-            <motion.article
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.25 }}
-              className="relative overflow-hidden rounded-3xl border border-cyan-400/30 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 p-6 text-white"
-            >
-              <div className="pointer-events-none absolute -right-16 -top-12 h-52 w-52 rounded-full bg-cyan-500/20 blur-3xl" />
-              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200">Primary Focus</p>
-              <h3 className="mt-2 font-heading text-4xl font-bold">MERN Stack Developer</h3>
-              <p className="mt-2 max-w-xl text-sm text-slate-300">
-                React frontends, Node and Express APIs, MongoDB data modeling, and deployment-ready full-stack workflows.
-              </p>
-
-              <div className="relative mt-6 grid place-items-center">
-                <div className="h-56 w-56 rounded-full border border-cyan-400/30 bg-slate-950/80 shadow-[0_0_45px_rgba(56,189,248,0.3)]" />
-                <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                  <div className="rounded-xl border border-cyan-300/40 bg-cyan-400/15 px-4 py-2 text-xl font-bold text-cyan-200">MERN</div>
-                </div>
-                {skillOrbitItems.map((item, index) => {
-                  const angle = (360 / skillOrbitItems.length) * index;
-                  return (
-                    <span
-                      key={item}
-                      className="absolute inline-flex -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/30 bg-slate-900 px-3 py-1 text-xs font-semibold text-cyan-100"
-                      style={{
-                        left: `calc(50% + ${Math.cos((angle * Math.PI) / 180) * 120}px)`,
-                        top: `calc(50% + ${Math.sin((angle * Math.PI) / 180) * 120}px)`
-                      }}
-                    >
-                      {item}
-                    </span>
-                  );
-                })}
-              </div>
-            </motion.article>
-
-            <div className="space-y-4">
-              {stackedSkills.map((group, index) => (
-                <motion.article
-                  key={group.category}
-                  initial={{ opacity: 0, x: 20 }}
-                  whileInView={{ opacity: 1, x: 0 }}
-                  viewport={{ once: true, amount: 0.3 }}
-                  transition={{ delay: index * 0.05 }}
-                  className="rounded-2xl border border-indigo-400/30 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 p-4 text-white"
-                >
-                  <p className="text-sm font-semibold uppercase tracking-wider text-indigo-200">{group.category}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {group.items.map((item) => (
-                      <span key={`${group.category}-${item}`} className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-slate-100">
-                        {item}
-                      </span>
-                    ))}
-                  </div>
-                </motion.article>
-              ))}
-            </div>
-          </div>
-        </Section>
-
-        <Section
-          id="projects"
-          title="Projects"
-          subtitle="Filter projects by category."
-          action={(
-            <button
-              type="button"
-              onClick={openProjectForm}
-              className="inline-flex items-center gap-2 rounded-lg border border-sky-300 bg-white px-4 py-2 text-sm font-semibold text-sky-700 transition hover:border-sky-500 hover:text-sky-600"
-            >
-              <Plus size={16} />
-              Add Project
-            </button>
-          )}
-        >
-          <div className="mb-4 flex flex-wrap gap-2">
-            {projectCategories.map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() => setSelectedCategory(category)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                  selectedCategory === category
-                    ? "bg-gradient-to-r from-accent to-glow text-slate-900"
-                    : "border border-white/20 text-slate-300 hover:border-accent"
-                }`}
-              >
-                {category}
-              </button>
-            ))}
-          </div>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            {filteredProjects.map((project) => (
-              <motion.article
-                key={project.title}
-                whileHover={{ y: -6 }}
-                className="overflow-hidden rounded-xl border border-white/10 bg-slate-800/70"
-              >
-                <img src={project.image} alt={project.title} loading="lazy" className="h-40 w-full object-cover" />
-                <div className="p-4">
-                  <h3 className="font-heading text-lg text-white">{project.title}</h3>
-                  <p className="mt-2 text-sm text-slate-300">{project.description}</p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {project.tech.map((tech) => (
-                      <span key={tech} className="rounded border border-sky-300 bg-white px-2 py-1 text-xs text-sky-800">
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-4 flex gap-3">
-                    <a href={project.github} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg border border-white/20 px-3 py-2 text-sm hover:border-accent">
-                      <Github size={14} />
-                      GitHub
-                    </a>
-                    <a href={project.demo} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-accent to-glow px-3 py-2 text-sm font-semibold text-slate-900">
-                      <ExternalLink size={14} />
-                      Live Demo
-                    </a>
-                  </div>
-                </div>
-              </motion.article>
-            ))}
-          </div>
-        </Section>
-
-        <Section id="experience" title="Experience, Achievements & Leadership" subtitle={experience.role}>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <article className="rounded-xl border border-white/10 bg-slate-800/70 p-4">
-              <h3 className="font-heading text-lg text-white">{experience.company}</h3>
-              <p className="mt-1 text-sm text-cyan-200">{experience.role}</p>
-              <ul className="mt-3 list-disc space-y-1 pl-4 text-sm text-slate-300">
-                {experience.responsibilities.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {experience.techStack.map((tech) => (
-                  <span key={tech} className="rounded border border-sky-300 bg-white px-2 py-1 text-xs text-sky-800">
-                    {tech}
-                  </span>
-                ))}
-              </div>
-            </article>
-            <article className="rounded-xl border border-white/10 bg-slate-800/70 p-4">
-              <h3 className="font-heading text-lg text-white">Achievements</h3>
-              <ul className="mt-3 list-disc space-y-1 pl-4 text-sm text-slate-300">
-                {achievements.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-              <h3 className="mt-4 font-heading text-lg text-white">Extracurricular</h3>
-              <ul className="mt-3 list-disc space-y-1 pl-4 text-sm text-slate-300">
-                {extracurricular.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </article>
-          </div>
-        </Section>
-
-        <Section id="github" title="GitHub" subtitle="Contribution graph and profile stats placeholders.">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ResilientImage
-              className="w-full rounded-xl border border-white/10 bg-slate-950 p-2"
-              alt="GitHub contribution graph"
-              sources={[
-                "https://ghchart.rshah.org/00ffff/abhishekgfg",
-                "https://ghchart.rshah.org/abhishekgfg",
-                "https://github-readme-activity-graph.vercel.app/graph?username=abhishekgfg&theme=react-dark&hide_border=true"
-              ]}
-            />
-            <ResilientImage
-              className="w-full rounded-xl border border-white/10 bg-slate-950 p-2"
-              alt="GitHub stats card"
-              sources={[
-                "https://github-readme-stats.vercel.app/api?username=abhishekgfg&show_icons=true&theme=tokyonight",
-                "https://github-readme-stats-git-masterrstaa-rickstaa.vercel.app/api?username=abhishekgfg&show_icons=true&theme=tokyonight",
-                "https://github-profile-summary-cards.vercel.app/api/cards/stats?username=abhishekgfg&theme=github_dark"
-              ]}
-            />
-          </div>
-        </Section>
-
-        <Section id="reviews" title="Review / Feedback" subtitle="Visitor reviews are stored in Firebase and shown latest first.">
-          <div className="grid gap-4 lg:grid-cols-2">
-            <form onSubmit={submitReview} className="space-y-4 rounded-2xl border border-sky-300/40 bg-slate-900/70 p-5">
-              <h3 className="font-heading text-2xl font-bold text-white">Share Your Experience</h3>
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-200">Your Name *</label>
-                <input
-                  placeholder="Enter your name"
-                  value={reviewForm.name}
-                  onChange={(e) => setReviewForm((prev) => ({ ...prev, name: e.target.value }))}
-                  className="w-full rounded-xl border border-sky-300/30 bg-slate-950/80 p-3 text-slate-100 placeholder:text-slate-400"
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-200">Email Address *</label>
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={reviewForm.email}
-                  onChange={(e) => setReviewForm((prev) => ({ ...prev, email: e.target.value }))}
-                  className="w-full rounded-xl border border-sky-300/30 bg-slate-950/80 p-3 text-slate-100 placeholder:text-slate-400"
-                  required
-                />
-              </div>
-              <div>
-                <p className="mb-2 text-sm font-semibold text-slate-200">Rating *</p>
-                <div className="flex items-center gap-2">
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <button
-                      type="button"
-                      key={n}
-                      onClick={() => setReviewForm((prev) => ({ ...prev, rating: n }))}
-                      className="rounded p-1"
-                    >
-                      <Star className={n <= reviewForm.rating ? "fill-amber-300 text-amber-300" : "text-slate-500"} size={28} />
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-slate-200">Your Review *</label>
-                <textarea
-                  placeholder="Share your thoughts about my work..."
-                  value={reviewForm.comment}
-                  onChange={(e) => setReviewForm((prev) => ({ ...prev, comment: e.target.value }))}
-                  className="min-h-32 w-full rounded-xl border border-sky-300/30 bg-slate-950/80 p-3 text-slate-100 placeholder:text-slate-400"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={reviewSubmitting}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-gradient-to-r from-glow via-accent to-glow px-4 py-3 text-base font-semibold text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                <Send size={16} />
-                {reviewSubmitting ? "Submitting..." : "Submit Review"}
-              </button>
-              <p className="text-sm text-cyan-200">{reviewStatus}</p>
-            </form>
-
-            <div className="max-h-[380px] space-y-3 overflow-y-auto rounded-xl border border-white/10 bg-slate-800/70 p-4">
-              {reviews.length ? (
-                reviews.map((item) => (
-                  <article key={item.id} className="rounded-lg border border-white/10 bg-slate-900 p-3">
-                    <div className="mb-1 flex items-center justify-between">
-                      <p className="font-semibold text-white">{item.name}</p>
-                      <button
-                        type="button"
-                        onClick={() => handleDeleteReview(item)}
-                        disabled={deletingReviewId === item.id}
-                        className="inline-flex items-center gap-1 rounded-md border border-rose-300/60 bg-rose-50 px-2 py-1 text-xs font-semibold text-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        <Trash2 size={12} />
-                        {deletingReviewId === item.id ? "Deleting..." : "Delete"}
-                      </button>
-                    </div>
-                    <p className="mb-1 text-amber-300">{`${"\u2605".repeat(item.rating)}${"\u2606".repeat(5 - item.rating)}`}</p>
-                    <p className="text-sm text-slate-300">{item.comment}</p>
-                    <p className="mt-1 text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</p>
-                  </article>
-                ))
-              ) : (
-                <p className="text-slate-400">No reviews yet.</p>
-              )}
-            </div>
-          </div>
-        </Section>
-
-        <Section id="analytics" title="Visitor Analytics" subtitle="Live visitor stats connected with Firebase Realtime Database + Firestore.">
-          <div className="grid gap-4 md:grid-cols-3">
-            <article className="rounded-xl border border-white/10 bg-slate-800/70 p-4">
-              <p className="text-sm text-slate-300">Total Visitors</p>
-              <p className="mt-2 text-3xl font-bold text-accent">{analytics.totalVisitors}</p>
-            </article>
-            <article className="rounded-xl border border-white/10 bg-slate-800/70 p-4">
-              <p className="text-sm text-slate-300">Page Views</p>
-              <p className="mt-2 text-3xl font-bold text-accent">{analytics.pageViews}</p>
-            </article>
-            <article className="rounded-xl border border-white/10 bg-slate-800/70 p-4">
-              <p className="text-sm text-slate-300">Most Visited Sections</p>
-              <ul className="mt-2 space-y-1 text-sm text-slate-200">
-                {sectionRanking.length ? (
-                  sectionRanking.map(([name, count]) => <li key={name}>{`${name}: ${count}`}</li>)
-                ) : (
-                  <li>No data yet.</li>
-                )}
-              </ul>
-            </article>
-          </div>
-        </Section>
-
-        <Section id="contact" title="Contact" subtitle="Professional links">
-          <div className="rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-4 md:p-6">
-            <div className="flex flex-wrap gap-3">
-              <a href="mailto:abhishek8579013@gmail.com" className="inline-flex items-center gap-2 rounded-xl border border-sky-300 bg-white px-5 py-3 text-sky-800 transition hover:-translate-y-0.5 hover:shadow-md">
-                <Mail size={18} />
-                abhishek8579013@gmail.com
-              </a>
-              <a href="tel:6202000340" className="inline-flex items-center gap-2 rounded-xl border border-sky-300 bg-white px-5 py-3 text-sky-800 transition hover:-translate-y-0.5 hover:shadow-md">
-                <Phone size={18} />
-                +91 6202000340
-              </a>
-              <a href="https://github.com/abhishekgfg?tab=repositories" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-sky-300 bg-white px-5 py-3 text-sky-800 transition hover:-translate-y-0.5 hover:shadow-md">
-                <Github size={18} />
-                github.com/abhishekgfg
-              </a>
-              <a href="https://www.linkedin.com/in/abhishek-kumar-847b74241/" target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-xl border border-sky-300 bg-white px-5 py-3 text-sky-800 transition hover:-translate-y-0.5 hover:shadow-md">
-                <Linkedin size={18} />
-                linkedin.com/in/abhishek-kumar-847b74241
-              </a>
-            </div>
-          </div>
-        </Section>
+            <main className="space-y-8 px-4 py-8 md:px-6 md:py-10">
+        <HeroSection
+          developer={developer}
+          experience={experience}
+          primaryEducation={primaryEducation}
+          typedRole={typedRole}
+          handleResumeDownload={handleResumeDownload}
+          heroHighlights={heroHighlights}
+          heroTechStack={heroTechStack}
+          mernGraphData={mernGraphData}
+        />
+        <AboutSection developer={developer} />
+        <EducationSection education={education} />
+        <SkillsSection stackedSkills={stackedSkills} skillOrbitItems={skillOrbitItems} />
+        <ProjectsSection
+          projectCategories={projectCategories}
+          selectedCategory={selectedCategory}
+          setSelectedCategory={setSelectedCategory}
+          filteredProjects={filteredProjects}
+          openProjectForm={openProjectForm}
+        />
+        <ExperienceSection
+          experience={experience}
+          achievements={achievements}
+          extracurricular={extracurricular}
+        />
+        <GithubSection />
+        <ReviewsSection
+          submitReview={submitReview}
+          reviewForm={reviewForm}
+          setReviewForm={setReviewForm}
+          reviewSubmitting={reviewSubmitting}
+          reviewStatus={reviewStatus}
+          reviews={reviews}
+          handleDeleteReview={handleDeleteReview}
+          deletingReviewId={deletingReviewId}
+        />
+        <AnalyticsSection analytics={analytics} sectionRanking={sectionRanking} />
+        <ContactSection />
       </main>
 
-      {projectFormOpen ? (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 px-4 py-8 backdrop-blur-sm">
-          <div className="mx-auto w-full max-w-3xl rounded-2xl border border-sky-200 bg-white p-6 shadow-2xl md:p-8">
-            <div className="mb-4 flex items-center justify-between gap-2">
-              <h3 className="font-heading text-2xl font-bold text-sky-900">Add New Project</h3>
-              <button
-                type="button"
-                onClick={closeProjectForm}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-sky-200 text-sky-700 transition hover:border-sky-400"
-                aria-label="Close add project form"
-              >
-                <X size={16} />
-              </button>
-            </div>
+      <ProjectFormModal
+        projectFormOpen={projectFormOpen}
+        closeProjectForm={closeProjectForm}
+        handleProjectSubmit={handleProjectSubmit}
+        projectForm={projectForm}
+        setProjectForm={setProjectForm}
+        setProjectBannerFile={setProjectBannerFile}
+        projectFormStatus={projectFormStatus}
+      />
 
-            <form onSubmit={handleProjectSubmit} className="grid gap-4">
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-sky-800">Project Title *</label>
-                <input
-                  value={projectForm.title}
-                  onChange={(e) => setProjectForm((prev) => ({ ...prev, title: e.target.value }))}
-                  className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-slate-800"
-                  placeholder="e.g. Portfolio Builder"
-                  required
-                />
-              </div>
+      <Footer />
 
-              <div>
-                <label className="mb-1 block text-sm font-semibold text-sky-800">Description *</label>
-                <textarea
-                  value={projectForm.description}
-                  onChange={(e) => setProjectForm((prev) => ({ ...prev, description: e.target.value }))}
-                  className="min-h-28 w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-slate-800"
-                  placeholder="Brief project summary"
-                  required
-                />
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-sky-800">GitHub Link</label>
-                  <input
-                    type="url"
-                    value={projectForm.github}
-                    onChange={(e) => setProjectForm((prev) => ({ ...prev, github: e.target.value }))}
-                    className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-slate-800"
-                    placeholder="https://github.com/username/repo"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-sky-800">Website Link</label>
-                  <input
-                    type="url"
-                    value={projectForm.website}
-                    onChange={(e) => setProjectForm((prev) => ({ ...prev, website: e.target.value }))}
-                    className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-slate-800"
-                    placeholder="https://your-project-site.com"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-sky-800">Programming Language(s) *</label>
-                  <input
-                    value={projectForm.languages}
-                    onChange={(e) => setProjectForm((prev) => ({ ...prev, languages: e.target.value }))}
-                    className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-slate-800"
-                    placeholder="JavaScript, React, Node.js"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-sky-800">Category</label>
-                  <input
-                    value={projectForm.category}
-                    onChange={(e) => setProjectForm((prev) => ({ ...prev, category: e.target.value }))}
-                    className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-slate-800"
-                    placeholder="Web Apps / Desktop Apps / Custom"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-sky-800">Banner URL</label>
-                  <input
-                    type="url"
-                    value={projectForm.bannerUrl}
-                    onChange={(e) => setProjectForm((prev) => ({ ...prev, bannerUrl: e.target.value }))}
-                    className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-slate-800"
-                    placeholder="https://image-link.com/banner.jpg"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block text-sm font-semibold text-sky-800">Or Upload Banner</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => setProjectBannerFile(e.target.files?.[0] || null)}
-                    className="w-full rounded-lg border border-sky-200 bg-white px-3 py-2 text-slate-800"
-                  />
-                </div>
-              </div>
-
-              {projectFormStatus ? <p className="text-sm text-sky-700">{projectFormStatus}</p> : null}
-
-              <div className="mt-2 flex flex-wrap justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={closeProjectForm}
-                  className="rounded-lg border border-sky-200 bg-white px-4 py-2 text-sm font-semibold text-sky-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-accent to-glow px-4 py-2 text-sm font-semibold text-slate-900"
-                >
-                  <Plus size={15} />
-                  Add Project
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      ) : null}
-
-      <footer className="mx-auto mb-6 w-[min(1120px,95vw)] rounded-3xl border border-sky-200 bg-gradient-to-br from-white to-sky-50 px-6 py-8 md:px-10">
-        <div className="grid gap-8 md:grid-cols-3">
-          <div>
-            <div className="flex items-center gap-3">
-              <div className="grid h-12 w-12 place-items-center rounded-full border-2 border-sky-300 bg-sky-100 font-heading text-xl font-semibold text-sky-700">
-                AK
-              </div>
-              <h3 className="font-heading text-3xl text-sky-900">Abhishek Kumar</h3>
-            </div>
-            <p className="mt-4 max-w-sm text-sky-700">
-              MERN stack developer building practical, scalable products with clean architecture.
-            </p>
-            <div className="mt-4 flex gap-2">
-              <a href="https://github.com/abhishekgfg?tab=repositories" target="_blank" rel="noreferrer" className="rounded-full border border-sky-300 bg-white p-2 text-sky-700 hover:text-sky-500">
-                <Github size={18} />
-              </a>
-              <a href="mailto:abhishek8579013@gmail.com" className="rounded-full border border-sky-300 bg-white p-2 text-sky-700 hover:text-sky-500">
-                <Mail size={18} />
-              </a>
-              <a href="tel:6202000340" className="rounded-full border border-sky-300 bg-white p-2 text-sky-700 hover:text-sky-500">
-                <Phone size={18} />
-              </a>
-              <a href="https://www.linkedin.com/in/abhishek-kumar-847b74241/" target="_blank" rel="noreferrer" className="rounded-full border border-sky-300 bg-white p-2 text-sky-700 hover:text-sky-500">
-                <Linkedin size={18} />
-              </a>
-            </div>
-          </div>
-          <div>
-            <h4 className="font-heading text-xl text-sky-900">Quick Links</h4>
-            <ul className="mt-3 space-y-2 text-sky-700">
-              {["Home", "About", "Reviews", "Projects", "Contact"].map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="font-heading text-xl text-sky-900">Technologies</h4>
-            <ul className="mt-3 space-y-2 text-sky-700">
-              {["MongoDB", "Express.js", "React", "Node.js", "JavaScript"].map((item) => (
-                <li key={item}>{item}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div className="mt-6 border-t border-sky-200 pt-5 text-center text-sky-600">
-          (c) {new Date().getFullYear()} Abhishek Kumar. All rights reserved.
-        </div>
-      </footer>
-
-      <button
-        type="button"
-        onClick={() => setChatOpen(true)}
-        className="chat-fab"
-        aria-label="Open chatbot"
-      >
-        <Bot />
-      </button>
-
-      {chatOpen ? (
-        <div className="chat-shell">
-          <div className="chat-head">
-            <div className="flex items-center gap-2">
-              <MessageSquare size={16} />
-              <p className="font-heading">Portfolio AI Chat</p>
-            </div>
-          </div>
-          <div className="chat-body">
-            {messages.map((m, i) => (
-              <div
-                key={`${m.role}-${i}`}
-                className={`chat-bubble ${m.role === "user" ? "chat-user" : "chat-bot"}`}
-              >
-                {m.text}
-              </div>
-            ))}
-            {chatLoading && typingResponse ? (
-              <div className="chat-bubble chat-bot">{typingResponse}</div>
-            ) : null}
-          </div>
-          <form onSubmit={sendChat} className="chat-form">
-            <button
-              type="button"
-              className="chat-close chat-close-inline"
-              onClick={() => setChatOpen(false)}
-              aria-label="Close chatbot"
-              title="Close chat"
-            >
-              <X size={14} />
-            </button>
-            <input
-              value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
-              className="chat-input"
-              placeholder="Ask about skills, projects, contact..."
-            />
-            <button
-              type="submit"
-              disabled={chatLoading}
-              className="chat-send"
-            >
-              <Send size={14} />
-            </button>
-          </form>
-        </div>
-      ) : null}
+      <ChatWidget
+        chatOpen={chatOpen}
+        setChatOpen={setChatOpen}
+        messages={messages}
+        chatLoading={chatLoading}
+        typingResponse={typingResponse}
+        sendChat={sendChat}
+        chatInput={chatInput}
+        setChatInput={setChatInput}
+      />
     </div>
   );
 }
 
 export default App;
+
 
