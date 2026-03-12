@@ -1,5 +1,9 @@
 export const GEMINI_API_KEY =
+<<<<<<< HEAD
   import.meta.env.VITE_GEMINI_API_KEY || "AIzaSyBOevbLfqKYGvKueJZw2-tS3zCrLBIifqk";
+=======
+  import.meta.env.VITE_GEMINI_API_KEY || "[REDACTED_GEMINI_KEY]";
+>>>>>>> 5c3439f (Update Gemini key and stabilize chatbot backend integration)
 
 export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyB0Fbn3rGfK9UNDg2wWwNYVW4cicyVciRc",
