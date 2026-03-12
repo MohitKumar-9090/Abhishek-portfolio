@@ -1,7 +1,7 @@
 export const developer = {
   name: "Abhishek Kumar",
   role: "MERN Stack Developer and Full-Stack Web Developer",
-  location: "Amritsar, Punjab, India",
+  location: "Noida, Delhi, India",
   summary:
     "Proactive MERN stack developer with strong full-stack web development skills. Experienced in building responsive and scalable web applications."
 };
@@ -77,7 +77,7 @@ export const education = [
   {
     degree: "B.Tech Computer Science and Engineering",
     institute: "Amritsar Group of Colleges",
-    location: "Amritsar, Punjab",
+    location: "Noida, Delhi",
     year: "2021 - Present"
   },
   {
