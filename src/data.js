@@ -1,14 +1,15 @@
 export const developer = {
   name: "Abhishek Kumar",
-  role: "Java Developer and MERN Stack Developer",
+  role: "MERN Stack Developer and Full-Stack Web Developer",
   location: "Amritsar, Punjab, India",
   summary:
-    "Proactive Java and MERN stack developer with strong knowledge of Java, OOP concepts, and full-stack web development. Experienced in building responsive web and desktop applications."
+    "Proactive MERN stack developer with strong full-stack web development skills. Experienced in building responsive and scalable web applications."
 };
 
 export const roles = [
-  "Java Developer",
   "MERN Stack Developer",
+  "Full-Stack Web Developer",
+  "Java Developer",
   "Software Engineering Intern",
   "Problem Solver"
 ];

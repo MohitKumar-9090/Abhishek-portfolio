@@ -38,8 +38,6 @@
     />
     <meta name="twitter:image" content="https://your-domain.vercel.app/profile-photo.jpeg" />
 
-    <meta name="google-site-verification" content="%VITE_GSC_VERIFICATION%" />
-
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -55,13 +53,20 @@
       }
     </script>
 
-    <script>
-      (function initializeAnalytics(id) {
-        if (!id || id === "G-XXXXXXXXXX" || id.includes("VITE_")) return;
+    <script type="module">
+      const verificationToken = import.meta.env.VITE_GSC_VERIFICATION || "";
+      if (verificationToken) {
+        const verificationMeta = document.createElement("meta");
+        verificationMeta.name = "google-site-verification";
+        verificationMeta.content = verificationToken;
+        document.head.appendChild(verificationMeta);
+      }
 
-        var gtagScript = document.createElement("script");
+      const measurementId = import.meta.env.VITE_FIREBASE_MEASUREMENT_ID || "";
+      if (measurementId && measurementId !== "G-XXXXXXXXXX") {
+        const gtagScript = document.createElement("script");
         gtagScript.async = true;
-        gtagScript.src = "https://www.googletagmanager.com/gtag/js?id=" + id;
+        gtagScript.src = "https://www.googletagmanager.com/gtag/js?id=" + measurementId;
         document.head.appendChild(gtagScript);
 
         window.dataLayer = window.dataLayer || [];
@@ -69,9 +74,9 @@
           window.dataLayer.push(arguments);
         }
         gtag("js", new Date());
-        gtag("config", id);
+        gtag("config", measurementId);
         window.gtag = gtag;
-      })("%VITE_FIREBASE_MEASUREMENT_ID%");
+      }
     </script>
   </head>
   <body>

@@ -99,6 +99,12 @@ h2 {
   color: transparent !important;
 }
 
+.hero-name-title {
+  background: none !important;
+  -webkit-text-fill-color: #0f172a !important;
+  color: #0f172a !important;
+}
+
 button,
 a[class*="bg-gradient"] {
   box-shadow: 0 10px 24px rgba(79, 70, 229, 0.2);

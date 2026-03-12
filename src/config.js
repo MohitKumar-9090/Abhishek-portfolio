@@ -16,9 +16,9 @@ export const firebaseConfig = {
 
 export const portfolioContext = `
 Developer Name: Abhishek Kumar
-Role: Java Developer and MERN Stack Developer
+Role: MERN Stack Developer and Full-Stack Web Developer
 Location: Amritsar, Punjab, India
-Summary: Proactive Java and MERN stack developer with strong knowledge of Java, OOP concepts, and full-stack web development. Experienced in building responsive web and desktop applications.
+Summary: Proactive MERN stack developer with strong full-stack web development skills. Experienced in building responsive and scalable web applications.
 Education:
 - B.Tech Computer Science and Engineering, Amritsar Group of Colleges (2021 - Present), Amritsar, Punjab
 - 12th Boards, Gov+2 High School (BSEB), Motihari, Bihar

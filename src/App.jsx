@@ -7,7 +7,6 @@ import {
   Bot,
   Code2,
   ExternalLink,
-  Globe,
   Github,
   Linkedin,
   Mail,
@@ -19,11 +18,10 @@ import {
   Sparkles,
   Star,
   Trash2,
-  Wrench,
   X
 } from "lucide-react";
 import { onValue, ref, runTransaction } from "firebase/database";
-import { addDoc, collection, deleteDoc, doc, limit, onSnapshot, orderBy, query as fsQuery } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, increment, limit, onSnapshot, orderBy, query as fsQuery, setDoc } from "firebase/firestore";
 import { askGemini } from "./lib/gemini";
 import { db, firestore } from "./lib/firebase";
 import { emailJsConfig } from "./config";
@@ -36,6 +34,14 @@ const fadeUp = {
 };
 
 const LOCAL_ANALYTICS_KEY = "portfolio_local_analytics";
+const ANALYTICS_DOC = ["analytics", "global"];
+
+function createVisitorId() {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+  return `visitor-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+}
 
 function readLocalAnalytics() {
   try {
@@ -233,7 +239,7 @@ function useAnalyticsTracking() {
     const visitorKey = "portfolio_visitor_key";
     const isNewVisitor = !localStorage.getItem(visitorKey);
     if (isNewVisitor) {
-      localStorage.setItem(visitorKey, crypto.randomUUID());
+      localStorage.setItem(visitorKey, createVisitorId());
     }
 
     const localSnapshot = readLocalAnalytics();
@@ -255,9 +261,16 @@ function useAnalyticsTracking() {
         // Keep local analytics even if Firebase is unreachable or blocked by rules.
       }
     };
+    const incrementFirestoreAnalytics = (payload) => {
+      setDoc(doc(firestore, ANALYTICS_DOC[0], ANALYTICS_DOC[1]), payload, { merge: true }).catch(() => undefined);
+    };
 
-    if (isNewVisitor) incrementRemote("analytics/totalVisitors");
+    if (isNewVisitor) {
+      incrementRemote("analytics/totalVisitors");
+      incrementFirestoreAnalytics({ totalVisitors: increment(1) });
+    }
     incrementRemote("analytics/pageViews");
+    incrementFirestoreAnalytics({ pageViews: increment(1) });
 
     const viewed = new Set();
     const observer = new IntersectionObserver(
@@ -279,6 +292,7 @@ function useAnalyticsTracking() {
           saveLocalAnalytics(nextLocal);
           setAnalytics((prev) => mergeAnalytics(prev, nextLocal));
           incrementRemote(`analytics/sections/${id}`);
+          incrementFirestoreAnalytics({ [`sections.${id}`]: increment(1) });
         });
       },
       { threshold: 0.5 }
@@ -286,7 +300,7 @@ function useAnalyticsTracking() {
 
     document.querySelectorAll("[data-track]").forEach((el) => observer.observe(el));
 
-    const unsub = onValue(
+    const unsubRealtime = onValue(
       ref(db, "analytics"),
       (snap) => {
         const remoteData = snap.val() || {};
@@ -297,10 +311,20 @@ function useAnalyticsTracking() {
         setAnalytics(readLocalAnalytics());
       }
     );
+    const unsubFirestore = onSnapshot(
+      doc(firestore, ANALYTICS_DOC[0], ANALYTICS_DOC[1]),
+      (snapshot) => {
+        if (!snapshot.exists()) return;
+        const remoteData = snapshot.data() || {};
+        setAnalytics((prev) => mergeAnalytics(prev, remoteData));
+      },
+      () => undefined
+    );
 
     return () => {
       observer.disconnect();
-      unsub();
+      unsubRealtime();
+      unsubFirestore();
     };
   }, []);
 
@@ -700,34 +724,22 @@ function App() {
     return Object.entries(analytics.sections).sort((a, b) => b[1] - a[1]);
   }, [analytics.sections]);
 
-  const skillCards = useMemo(() => {
-    const get = (category) => skills.find((item) => item.category === category)?.items || [];
-    const withPercent = (items, base) =>
-      items.slice(0, 5).map((name, index) => ({
-        name,
-        percent: Math.max(70, Math.min(98, base - index * 5))
-      }));
-
-    return [
-      {
-        id: "programming",
-        title: "Programming",
-        icon: Code2,
-        items: withPercent(get("Languages"), 95)
-      },
-      {
-        id: "web-tech",
-        title: "Web Technologies",
-        icon: Globe,
-        items: withPercent(get("Frameworks"), 92)
-      },
-      {
-        id: "tools",
-        title: "Tools & Platforms",
-        icon: Wrench,
-        items: withPercent([...get("Databases"), ...get("Tools")], 90)
-      }
-    ];
+  const mernCore = ["MongoDB", "Express.js", "React", "Node.js"];
+  const mernGraphData = [
+    { name: "MongoDB", score: 92, tone: "from-cyan-500 to-sky-500" },
+    { name: "Express", score: 88, tone: "from-indigo-500 to-blue-500" },
+    { name: "React", score: 90, tone: "from-sky-500 to-cyan-400" },
+    { name: "Node.js", score: 86, tone: "from-emerald-500 to-cyan-500" }
+  ];
+  const stackedSkills = useMemo(() => {
+    const preferredOrder = ["Frameworks", "Databases", "Languages", "Tools", "Concepts"];
+    return preferredOrder
+      .map((name) => skills.find((group) => group.category === name))
+      .filter(Boolean);
+  }, []);
+  const skillOrbitItems = useMemo(() => {
+    const pool = [...mernCore, "Redux", "REST APIs", "JavaScript", "Git", "SQL"];
+    return pool.slice(0, 8);
   }, []);
 
   const submitReview = async (event) => {
@@ -988,6 +1000,15 @@ function App() {
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
 
+  const heroTechStack = ["Python", "Machine Learning", "React JS", "Java", "Node.js", "MongoDB", "Git & GitHub"];
+  const primaryEducation = education[0];
+  const heroHighlights = [
+    { value: "10+", label: "Projects" },
+    { value: "500+", label: "Problems Solved" },
+    { value: "2+", label: "Years Exp" },
+    { value: "4★", label: "HackerRank C++" }
+  ];
+
   return (
     <div className="min-h-screen font-body text-slate-900">
       <LoadingScreen done={!loading} />
@@ -1017,101 +1038,177 @@ function App() {
         <section
           id="hero"
           data-track="hero"
-          className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-3xl border border-violet-200 bg-white p-6 shadow-neon md:p-10"
+          className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-3xl border border-sky-200 bg-gradient-to-br from-slate-50 via-white to-sky-50 p-6 shadow-neon md:p-10"
         >
-          <div className="pointer-events-none absolute -left-6 top-20 h-16 w-16 rounded-full border-[10px] border-violet-200/70" />
-          <div className="pointer-events-none absolute left-24 top-10 h-12 w-24 rounded-full border-y-4 border-violet-300/60" />
-          <div className="pointer-events-none absolute right-10 top-20 h-14 w-14 rounded-full border-y-4 border-violet-300/60" />
-          <div className="pointer-events-none absolute bottom-14 right-8 h-20 w-20 rotate-12 border-l-[10px] border-violet-300/60" />
+          <div className="pointer-events-none absolute -left-12 top-16 -z-10 h-44 w-44 rounded-full bg-sky-200/40 blur-3xl" />
+          <div className="pointer-events-none absolute right-0 top-0 -z-10 h-56 w-56 rounded-full bg-indigo-200/40 blur-3xl" />
 
-          <div className="grid items-center gap-10 lg:grid-cols-2">
+          <div className="grid items-start gap-8 lg:grid-cols-[1.32fr_0.9fr]">
             <div>
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="inline-flex items-center gap-2 text-base font-semibold uppercase tracking-wide text-violet-600"
-              >
-                <Sparkles size={16} />
-                Hello, I'm
-              </motion.p>
+              <div className="mb-4 flex items-center gap-4">
+                <div className="relative rounded-full border-[3px] border-sky-300 bg-white p-1">
+                  <img
+                    src="/profile-photo.jpeg"
+                    alt="Profile"
+                    className="h-20 w-20 rounded-full object-cover object-top md:h-24 md:w-24"
+                  />
+                  <span className="absolute -right-1 top-2 h-3 w-3 rounded-full bg-blue-500" />
+                </div>
+                <div className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-white px-3 py-1 text-xs font-semibold text-sky-700">
+                  <Sparkles size={14} />
+                  Portfolio Profile
+                </div>
+              </div>
 
-              <h1 className="mt-3 font-heading text-4xl font-extrabold leading-tight text-slate-900 md:text-6xl">
-                {developer.name.toUpperCase()}
+              <h1 className="hero-name-title font-heading text-5xl font-extrabold leading-tight md:text-7xl">
+                {developer.name}
               </h1>
-              <p className="mt-3 text-lg font-medium text-slate-500">{developer.role}</p>
-              <p className="mt-4 max-w-xl text-base leading-7 text-slate-600">{developer.summary}</p>
-              <p className="mt-3 inline-flex items-center gap-2 text-sm text-slate-500">
-                <MapPin size={15} />
+              <p className="mt-2 text-xl font-semibold text-slate-700 md:text-4xl">{developer.role}</p>
+              <p className="mt-3 inline-flex items-center gap-2 text-lg text-slate-600">
+                <MapPin size={18} />
                 {developer.location}
               </p>
 
-              <p className="mt-5 text-lg text-violet-600 md:text-xl">
+              <p className="mt-4 max-w-3xl rounded-lg border border-dashed border-sky-200 bg-white px-4 py-2 text-lg font-medium text-slate-700">
+                Building Intelligent <span className="font-bold text-sky-700">AI Solutions</span> and modern web applications
+              </p>
+
+              <p className="mt-3 text-base font-semibold text-indigo-600">
                 {typedRole}
                 <span className="animate-pulse">|</span>
               </p>
 
-              <div className="mt-7 flex flex-wrap gap-3">
-                <a
-                  href="#projects"
-                  className="rounded-full bg-gradient-to-r from-violet-600 to-indigo-500 px-6 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-110"
-                >
-                  VIEW MY WORK
+              <div className="mt-4 flex flex-wrap gap-3 text-slate-700">
+                <a href="mailto:abhishek8579013@gmail.com" className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm">
+                  <Mail size={16} />
+                  abhishek8579013@gmail.com
+                </a>
+                <a href="tel:6202000340" className="inline-flex items-center gap-2 rounded-xl border border-sky-200 bg-white px-3 py-2 text-sm">
+                  <Phone size={16} />
+                  +91 6202000340
+                </a>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <article className="rounded-2xl border border-sky-200 bg-white p-4">
+                  <p className="text-sm font-semibold text-blue-700">{experience.company}</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-800">{experience.role}</p>
+                </article>
+                <article className="rounded-2xl border border-sky-200 bg-white p-4">
+                  <p className="text-sm font-semibold text-amber-600">{primaryEducation?.institute}</p>
+                  <p className="mt-1 text-2xl font-bold text-slate-800">{primaryEducation?.degree}</p>
+                </article>
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-3">
+                <a href="#projects" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-sky-600 to-indigo-600 px-5 py-3 text-base font-semibold text-white">
+                  View Projects
+                  <ExternalLink size={16} />
                 </a>
                 <button
                   type="button"
                   onClick={handleResumeDownload}
-                  className="inline-flex items-center gap-2 rounded-full border border-violet-200 bg-white px-6 py-3 text-sm font-semibold text-violet-700 transition hover:border-violet-400"
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-base font-semibold text-white"
                 >
                   <ArrowDownToLine size={16} />
-                  Resume Download
+                  Download Resume
                 </button>
               </div>
 
-              <div className="mt-5 flex flex-wrap items-center gap-3">
-                <a
-                  href="https://github.com/abhishekgfg?tab=repositories"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-violet-200 bg-white p-2 text-violet-700 transition hover:border-violet-400"
-                  aria-label="GitHub"
-                >
-                  <Github size={18} />
-                </a>
-                <a
-                  href="mailto:abhishek8579013@gmail.com"
-                  className="rounded-full border border-violet-200 bg-white p-2 text-violet-700 transition hover:border-violet-400"
-                  aria-label="Email"
-                >
-                  <Mail size={18} />
-                </a>
-                <a
-                  href="tel:6202000340"
-                  className="rounded-full border border-violet-200 bg-white p-2 text-violet-700 transition hover:border-violet-400"
-                  aria-label="Phone"
-                >
-                  <Phone size={18} />
-                </a>
-                <a
-                  href="https://www.linkedin.com/in/abhishek-kumar-847b74241/"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-violet-200 bg-white p-2 text-violet-700 transition hover:border-violet-400"
-                  aria-label="LinkedIn"
-                >
-                  <Linkedin size={18} />
-                </a>
+              <div className="mt-5 grid gap-3 rounded-2xl border border-sky-200 bg-white p-3 sm:grid-cols-4">
+                {heroHighlights.map((item) => (
+                  <article key={item.label} className="rounded-lg border border-sky-100 bg-slate-50 px-3 py-2 text-center">
+                    <p className="text-2xl font-extrabold text-sky-700">{item.value}</p>
+                    <p className="text-xs font-semibold text-slate-600">{item.label}</p>
+                  </article>
+                ))}
               </div>
             </div>
 
-            <div className="relative mx-auto w-full max-w-md">
-              <div className="absolute inset-x-8 inset-y-8 -z-10 border-8 border-violet-500" />
-              <div className="relative overflow-hidden rounded-2xl border border-violet-200 bg-white p-3 shadow-xl">
-                <img
-                  src="/profile-photo.jpeg"
-                  alt="Abhishek Kumar profile"
-                  className="h-[420px] w-full rounded-xl object-cover object-top"
+            <div className="relative space-y-5">
+              <article className="rounded-3xl border border-sky-200 bg-white p-5 shadow-lg">
+                <h3 className="mb-4 inline-flex items-center gap-2 font-heading text-3xl font-bold text-slate-800">
+                  <Code2 size={22} className="text-sky-700" />
+                  Tech Stack
+                </h3>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {heroTechStack.map((tech) => (
+                    <p key={tech} className="rounded-xl border border-sky-100 bg-slate-50 px-3 py-2 text-base font-semibold text-slate-700">
+                      {tech}
+                    </p>
+                  ))}
+                </div>
+              </article>
+
+              <article className="ml-auto w-full max-w-[280px] rotate-3 rounded-[2rem] border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-5 shadow-lg">
+                <p className="text-2xl font-extrabold text-indigo-700">Resume</p>
+                <button
+                  type="button"
+                  onClick={handleResumeDownload}
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-2 font-semibold text-indigo-700"
+                >
+                  <ArrowDownToLine size={16} />
+                  Download PDF
+                </button>
+                <ul className="mt-4 space-y-2 text-sm font-medium text-slate-600">
+                  <li>Education</li>
+                  <li>Projects</li>
+                  <li>Skills</li>
+                </ul>
+              </article>
+
+              <article className="relative hidden overflow-hidden rounded-3xl border border-sky-200/80 bg-gradient-to-br from-sky-100 via-white to-indigo-100 p-4 lg:block">
+                <motion.div
+                  className="pointer-events-none absolute -left-8 -top-8 h-28 w-28 rounded-full bg-cyan-400/30 blur-2xl"
+                  animate={{ scale: [1, 1.25, 1], opacity: [0.45, 0.8, 0.45] }}
+                  transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut" }}
                 />
-              </div>
+                <motion.div
+                  className="pointer-events-none absolute -bottom-10 right-2 h-32 w-32 rounded-full bg-indigo-400/25 blur-2xl"
+                  animate={{ scale: [1.2, 1, 1.2], opacity: [0.55, 0.25, 0.55] }}
+                  transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
+                />
+                <div className="h-full rounded-2xl border border-dashed border-sky-300/80 bg-white/70 p-4">
+                  <p className="text-sm font-semibold text-sky-700">MERN Focus</p>
+                  <div className="mt-3 space-y-2">
+                    {mernGraphData.map((item, index) => (
+                      <div key={item.name}>
+                        <div className="mb-1 flex items-center justify-between text-[11px] font-semibold text-slate-600">
+                          <span>{item.name}</span>
+                          <span>{item.score}%</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-sky-100">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            whileInView={{ width: `${item.score}%` }}
+                            viewport={{ once: true, amount: 0.7 }}
+                            transition={{ duration: 0.9, delay: index * 0.08 }}
+                            className={`h-2 rounded-full bg-gradient-to-r ${item.tone}`}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 rounded-xl border border-sky-200 bg-white/80 p-2">
+                    <svg viewBox="0 0 220 50" className="h-12 w-full">
+                      <polyline fill="none" stroke="#0ea5e9" strokeWidth="3" points="0,38 45,30 95,34 145,22 220,16" />
+                      <polyline fill="none" stroke="#4f46e5" strokeWidth="2.4" points="0,42 45,36 95,28 145,26 220,20" />
+                      {[0, 45, 95, 145, 220].map((x) => (
+                        <circle key={x} cx={x} cy={x === 145 ? 22 : x === 220 ? 16 : x === 45 ? 30 : x === 95 ? 34 : 38} r="2.6" fill="#06b6d4" />
+                      ))}
+                    </svg>
+                  </div>
+                </div>
+                {[...Array(10)].map((_, i) => (
+                  <motion.span
+                    key={`particle-${i}`}
+                    className="pointer-events-none absolute h-1.5 w-1.5 rounded-full bg-cyan-400/70"
+                    style={{ left: `${8 + i * 9}%`, bottom: `${6 + (i % 4) * 8}%` }}
+                    animate={{ y: [0, -10, 0], opacity: [0.25, 0.9, 0.25] }}
+                    transition={{ duration: 1.8 + (i % 3) * 0.5, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
+                  />
+                ))}
+              </article>
             </div>
           </div>
         </section>
@@ -1135,53 +1232,65 @@ function App() {
           </div>
         </Section>
 
-        <Section id="skills" title="Skills" subtitle="Grouped technical capabilities with a premium card layout.">
-          <div className="grid gap-5 lg:grid-cols-3">
-            {skillCards.map((card, cardIndex) => {
-              const Icon = card.icon;
-              return (
-                <motion.article
-                  key={card.id}
-                  initial={{ opacity: 0, y: 24 }}
-                  whileInView={{ opacity: 1, y: 0 }}
-                  viewport={{ once: true, amount: 0.35 }}
-                  transition={{ duration: 0.45, delay: cardIndex * 0.08 }}
-                  whileHover={{ y: -4 }}
-                  className="rounded-2xl border border-sky-200 bg-white p-5 shadow-[0_10px_24px_rgba(56,189,248,0.08)]"
-                >
-                  <div className="mb-5 flex items-center gap-3">
-                    <Icon className="text-sky-700" size={30} />
-                    <h3 className="font-heading text-3xl font-bold text-sky-900">{card.title}</h3>
-                  </div>
+        <Section id="skills" title="My Skills" subtitle="MERN stack focused profile with supporting technologies.">
+          <div className="grid gap-5 lg:grid-cols-2">
+            <motion.article
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, amount: 0.25 }}
+              className="relative overflow-hidden rounded-3xl border border-cyan-400/30 bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-950 p-6 text-white"
+            >
+              <div className="pointer-events-none absolute -right-16 -top-12 h-52 w-52 rounded-full bg-cyan-500/20 blur-3xl" />
+              <p className="text-sm font-semibold uppercase tracking-[0.2em] text-cyan-200">Primary Focus</p>
+              <h3 className="mt-2 font-heading text-4xl font-bold">MERN Stack Developer</h3>
+              <p className="mt-2 max-w-xl text-sm text-slate-300">
+                React frontends, Node and Express APIs, MongoDB data modeling, and deployment-ready full-stack workflows.
+              </p>
 
-                  <div className="space-y-5">
-                    {card.items.map((item, itemIndex) => (
-                      <motion.div
-                        key={`${card.id}-${item.name}`}
-                        initial={{ opacity: 0, y: 8 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true, amount: 0.6 }}
-                        transition={{ duration: 0.3, delay: cardIndex * 0.08 + itemIndex * 0.06 }}
-                      >
-                        <div className="mb-2 flex items-center justify-between">
-                          <p className="text-2xl font-semibold text-slate-800">{item.name}</p>
-                          <p className="text-2xl font-bold text-indigo-500">{item.percent}%</p>
-                        </div>
-                        <div className="h-3 rounded-full bg-slate-200">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            whileInView={{ width: `${item.percent}%` }}
-                            viewport={{ once: true, amount: 0.9 }}
-                            transition={{ duration: 0.9, delay: cardIndex * 0.08 + itemIndex * 0.08, ease: "easeOut" }}
-                            className="h-3 rounded-full bg-gradient-to-r from-indigo-500 via-cyan-500 to-amber-500"
-                          />
-                        </div>
-                      </motion.div>
+              <div className="relative mt-6 grid place-items-center">
+                <div className="h-56 w-56 rounded-full border border-cyan-400/30 bg-slate-950/80 shadow-[0_0_45px_rgba(56,189,248,0.3)]" />
+                <div className="pointer-events-none absolute inset-0 grid place-items-center">
+                  <div className="rounded-xl border border-cyan-300/40 bg-cyan-400/15 px-4 py-2 text-xl font-bold text-cyan-200">MERN</div>
+                </div>
+                {skillOrbitItems.map((item, index) => {
+                  const angle = (360 / skillOrbitItems.length) * index;
+                  return (
+                    <span
+                      key={item}
+                      className="absolute inline-flex -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-300/30 bg-slate-900 px-3 py-1 text-xs font-semibold text-cyan-100"
+                      style={{
+                        left: `calc(50% + ${Math.cos((angle * Math.PI) / 180) * 120}px)`,
+                        top: `calc(50% + ${Math.sin((angle * Math.PI) / 180) * 120}px)`
+                      }}
+                    >
+                      {item}
+                    </span>
+                  );
+                })}
+              </div>
+            </motion.article>
+
+            <div className="space-y-4">
+              {stackedSkills.map((group, index) => (
+                <motion.article
+                  key={group.category}
+                  initial={{ opacity: 0, x: 20 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, amount: 0.3 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="rounded-2xl border border-indigo-400/30 bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 p-4 text-white"
+                >
+                  <p className="text-sm font-semibold uppercase tracking-wider text-indigo-200">{group.category}</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {group.items.map((item) => (
+                      <span key={`${group.category}-${item}`} className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold text-slate-100">
+                        {item}
+                      </span>
                     ))}
                   </div>
                 </motion.article>
-              );
-            })}
+              ))}
+            </div>
           </div>
         </Section>
 
@@ -1397,7 +1506,7 @@ function App() {
           </div>
         </Section>
 
-        <Section id="analytics" title="Visitor Analytics" subtitle="Basic dashboard powered by Firebase Realtime Database.">
+        <Section id="analytics" title="Visitor Analytics" subtitle="Live visitor stats connected with Firebase Realtime Database + Firestore.">
           <div className="grid gap-4 md:grid-cols-3">
             <article className="rounded-xl border border-white/10 bg-slate-800/70 p-4">
               <p className="text-sm text-slate-300">Total Visitors</p>
@@ -1582,7 +1691,7 @@ function App() {
               <h3 className="font-heading text-3xl text-sky-900">Abhishek Kumar</h3>
             </div>
             <p className="mt-4 max-w-sm text-sky-700">
-              Java and MERN developer building practical, scalable products with clean architecture.
+              MERN stack developer building practical, scalable products with clean architecture.
             </p>
             <div className="mt-4 flex gap-2">
               <a href="https://github.com/abhishekgfg?tab=repositories" target="_blank" rel="noreferrer" className="rounded-full border border-sky-300 bg-white p-2 text-sky-700 hover:text-sky-500">
@@ -1610,7 +1719,7 @@ function App() {
           <div>
             <h4 className="font-heading text-xl text-sky-900">Technologies</h4>
             <ul className="mt-3 space-y-2 text-sky-700">
-              {["Java", "JavaScript", "React", "Node.js", "MongoDB"].map((item) => (
+              {["MongoDB", "Express.js", "React", "Node.js", "JavaScript"].map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
