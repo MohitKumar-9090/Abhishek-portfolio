@@ -1,8 +1,10 @@
 import Section from "../ui/Section";
+import { EXPERIENCE_SECTION } from "./experienceData";
+import "./experience.css";
 
 export default function ExperienceSection({ experience, achievements, extracurricular }) {
   return (
-    <Section id="experience" title="Experience, Achievements & Leadership" subtitle={experience.role}>
+    <Section id={EXPERIENCE_SECTION.id} title={EXPERIENCE_SECTION.title} subtitle={experience.role}>
       <div className="grid gap-4 lg:grid-cols-2">
         <article className="rounded-xl border border-white/10 bg-slate-800/70 p-4">
           <h3 className="font-heading text-lg text-white">{experience.company}</h3>

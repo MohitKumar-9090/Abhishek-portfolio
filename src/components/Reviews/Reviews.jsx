@@ -1,5 +1,7 @@
 import { Send, Star, Trash2 } from "lucide-react";
 import Section from "../ui/Section";
+import { REVIEWS_SECTION } from "./reviewsData";
+import "./reviews.css";
 
 export default function ReviewsSection({
   submitReview,
@@ -12,7 +14,7 @@ export default function ReviewsSection({
   deletingReviewId
 }) {
   return (
-    <Section id="reviews" title="Review / Feedback" subtitle="Visitor reviews are stored in Firebase and shown latest first.">
+    <Section id={REVIEWS_SECTION.id} title={REVIEWS_SECTION.title} subtitle={REVIEWS_SECTION.subtitle}>
       <div className="grid gap-4 lg:grid-cols-2">
         <form onSubmit={submitReview} className="space-y-4 rounded-2xl border border-sky-300/40 bg-slate-900/70 p-5">
           <h3 className="font-heading text-2xl font-bold text-white">Share Your Experience</h3>

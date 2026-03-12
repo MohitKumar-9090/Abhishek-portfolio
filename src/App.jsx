@@ -8,19 +8,22 @@ import { db, firestore } from "./lib/firebase";
 import { emailJsConfig } from "./config";
 import { getLocalItems, LOCAL_PROJECTS_KEY, LOCAL_REVIEWS_KEY, mergeByKey, saveLocalItems } from "./features/storage/localStore";
 import { achievements, developer, education, experience, extracurricular, projects, roles, skills } from "./data";
-import HeroSection from "./components/sections/HeroSection";
-import AboutSection from "./components/sections/AboutSection";
-import EducationSection from "./components/sections/EducationSection";
-import SkillsSection from "./components/sections/SkillsSection";
-import ProjectsSection from "./components/sections/ProjectsSection";
-import ExperienceSection from "./components/sections/ExperienceSection";
-import GithubSection from "./components/sections/GithubSection";
-import ReviewsSection from "./components/sections/ReviewsSection";
-import AnalyticsSection from "./components/sections/AnalyticsSection";
-import ContactSection from "./components/sections/ContactSection";
+import HeroSection from "./components/Hero/Hero";
+import { heroHighlights, heroTechStack, mernGraphData } from "./components/Hero/heroData";
+import AboutSection from "./components/About/About";
+import EducationSection from "./components/Education/Education";
+import SkillsSection from "./components/Skills/Skills";
+import { skillOrbitPool, skillsPreferredOrder } from "./components/Skills/skillsData";
+import ProjectsSection from "./components/Projects/Projects";
+import ExperienceSection from "./components/Experience/Experience";
+import GithubSection from "./components/Github/Github";
+import ReviewsSection from "./components/Reviews/Reviews";
+import AnalyticsSection from "./components/Analytics/Analytics";
+import ContactSection from "./components/Contact/Contact";
 import ProjectFormModal from "./components/modals/ProjectFormModal";
 import Footer from "./components/layout/Footer";
-import ChatWidget from "./components/chat/ChatWidget";
+import Chatbot from "./components/Chatbot/Chatbot";
+import { CHATBOT_SECTION, INITIAL_CHAT_MESSAGES } from "./components/Chatbot/chatbotData";
 
 const LOCAL_ANALYTICS_KEY = "portfolio_local_analytics";
 const ANALYTICS_DOC = ["analytics", "global"];
@@ -555,12 +558,7 @@ function App() {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatLoading, setChatLoading] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      role: "bot",
-      text: "Hi! Ask me anything."
-    }
-  ]);
+  const [messages, setMessages] = useState(() => [...INITIAL_CHAT_MESSAGES]);
   const [reviews, setReviews] = useState([]);
   const [reviewForm, setReviewForm] = useState({
     name: "",
@@ -668,22 +666,13 @@ function App() {
     return Object.entries(analytics.sections).sort((a, b) => b[1] - a[1]);
   }, [analytics.sections]);
 
-  const mernCore = ["MongoDB", "Express.js", "React", "Node.js"];
-  const mernGraphData = [
-    { name: "MongoDB", score: 92, tone: "from-cyan-500 to-sky-500" },
-    { name: "Express", score: 88, tone: "from-indigo-500 to-blue-500" },
-    { name: "React", score: 90, tone: "from-sky-500 to-cyan-400" },
-    { name: "Node.js", score: 86, tone: "from-emerald-500 to-cyan-500" }
-  ];
   const stackedSkills = useMemo(() => {
-    const preferredOrder = ["Frameworks", "Databases", "Languages", "Tools", "Concepts"];
-    return preferredOrder
+    return skillsPreferredOrder
       .map((name) => skills.find((group) => group.category === name))
       .filter(Boolean);
   }, []);
   const skillOrbitItems = useMemo(() => {
-    const pool = [...mernCore, "Redux", "REST APIs", "JavaScript", "Git", "SQL"];
-    return pool.slice(0, 8);
+    return skillOrbitPool.slice(0, 8);
   }, []);
 
   const submitReview = async (event) => {
@@ -944,14 +933,7 @@ function App() {
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   };
 
-  const heroTechStack = ["Python", "Machine Learning", "React JS", "Java", "Node.js", "MongoDB", "Git & GitHub"];
   const primaryEducation = education[0];
-  const heroHighlights = [
-    { value: "10+", label: "Projects" },
-    { value: "500+", label: "Problems Solved" },
-    { value: "2+", label: "Years Exp" },
-    { value: "4★", label: "HackerRank C++" }
-  ];
 
   return (
     <div className="min-h-screen font-body text-slate-900">
@@ -969,7 +951,7 @@ function App() {
             Abhishek Kumar
           </a>
           <div className="hidden items-center gap-5 text-sm md:flex">
-            {["about", "education", "skills", "projects", "experience", "github", "reviews", "analytics", "contact"].map((id) => (
+            {["about", "education", "skills", "projects", "experience", "github", "reviews", "analytics", "chatbot", "contact"].map((id) => (
               <a key={id} href={`#${id}`} className="text-slate-300 transition hover:text-accent">
                 {id}
               </a>
@@ -1016,6 +998,23 @@ function App() {
           deletingReviewId={deletingReviewId}
         />
         <AnalyticsSection analytics={analytics} sectionRanking={sectionRanking} />
+        <section id={CHATBOT_SECTION.id} className="mx-auto w-[min(1120px,95vw)] rounded-3xl border border-sky-200 bg-white/90 px-6 py-8 shadow-xl md:px-10">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="font-heading text-3xl text-sky-900">{CHATBOT_SECTION.title}</h2>
+              <p className="mt-2 max-w-2xl text-sky-700">
+                {CHATBOT_SECTION.subtitle}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setChatOpen(true)}
+              className="inline-flex items-center justify-center rounded-lg bg-gradient-to-r from-accent to-glow px-5 py-3 text-sm font-semibold text-slate-900"
+            >
+              {CHATBOT_SECTION.ctaLabel}
+            </button>
+          </div>
+        </section>
         <ContactSection />
       </main>
 
@@ -1031,7 +1030,7 @@ function App() {
 
       <Footer />
 
-      <ChatWidget
+      <Chatbot
         chatOpen={chatOpen}
         setChatOpen={setChatOpen}
         messages={messages}

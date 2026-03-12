@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowDownToLine, Code2, ExternalLink, Mail, MapPin, Phone, Sparkles } from "lucide-react";
+import { HERO_SECTION } from "./heroData";
+import "./hero.css";
 
 export default function HeroSection({
   developer,
@@ -13,8 +15,8 @@ export default function HeroSection({
 }) {
   return (
     <section
-      id="hero"
-      data-track="hero"
+      id={HERO_SECTION.id}
+      data-track={HERO_SECTION.id}
       className="relative mx-auto w-full max-w-6xl overflow-hidden rounded-3xl border border-sky-200 bg-gradient-to-br from-slate-50 via-white to-sky-50 p-6 shadow-neon md:p-10"
     >
       <div className="pointer-events-none absolute -left-12 top-16 -z-10 h-44 w-44 rounded-full bg-sky-200/40 blur-3xl" />

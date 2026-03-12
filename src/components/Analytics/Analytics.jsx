@@ -1,8 +1,10 @@
 import Section from "../ui/Section";
+import { ANALYTICS_SECTION } from "./analyticsData";
+import "./analytics.css";
 
 export default function AnalyticsSection({ analytics, sectionRanking }) {
   return (
-    <Section id="analytics" title="Visitor Analytics" subtitle="Live visitor stats connected with Firebase Realtime Database + Firestore.">
+    <Section id={ANALYTICS_SECTION.id} title={ANALYTICS_SECTION.title} subtitle={ANALYTICS_SECTION.subtitle}>
       <div className="grid gap-4 md:grid-cols-3">
         <article className="rounded-xl border border-white/10 bg-slate-800/70 p-4">
           <p className="text-sm text-slate-300">Total Visitors</p>

@@ -1,9 +1,11 @@
 import { motion } from "framer-motion";
 import Section from "../ui/Section";
+import { SKILLS_SECTION } from "./skillsData";
+import "./skills.css";
 
 export default function SkillsSection({ stackedSkills, skillOrbitItems }) {
   return (
-    <Section id="skills" title="My Skills" subtitle="MERN stack focused profile with supporting technologies.">
+    <Section id={SKILLS_SECTION.id} title={SKILLS_SECTION.title} subtitle={SKILLS_SECTION.subtitle}>
       <div className="grid gap-5 lg:grid-cols-2">
         <motion.article
           initial={{ opacity: 0, y: 24 }}

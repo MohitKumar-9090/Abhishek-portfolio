@@ -1,8 +1,14 @@
 import Section from "../ui/Section";
+import { EDUCATION_SECTION } from "./educationData";
+import "./education.css";
 
 export default function EducationSection({ education }) {
   return (
-    <Section id="education" title="Education" subtitle="Academic background">
+    <Section
+      id={EDUCATION_SECTION.id}
+      title={EDUCATION_SECTION.title}
+      subtitle={EDUCATION_SECTION.subtitle}
+    >
       <div className="grid gap-3 md:grid-cols-3">
         {education.map((item) => (
           <article key={`${item.degree}-${item.institute}`} className="rounded-xl border border-white/10 bg-slate-800/70 p-4">

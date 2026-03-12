@@ -1,9 +1,11 @@
 import { Github, Linkedin, Mail, Phone } from "lucide-react";
 import Section from "../ui/Section";
+import { CONTACT_SECTION } from "./contactData";
+import "./contact.css";
 
 export default function ContactSection() {
   return (
-    <Section id="contact" title="Contact" subtitle="Professional links">
+    <Section id={CONTACT_SECTION.id} title={CONTACT_SECTION.title} subtitle={CONTACT_SECTION.subtitle}>
       <div className="rounded-3xl border border-sky-200 bg-gradient-to-br from-sky-50 to-blue-50 p-4 md:p-6">
         <div className="flex flex-wrap gap-3">
           <a href="mailto:abhishek8579013@gmail.com" className="inline-flex items-center gap-2 rounded-xl border border-sky-300 bg-white px-5 py-3 text-sky-800 transition hover:-translate-y-0.5 hover:shadow-md">

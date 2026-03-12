@@ -1,9 +1,11 @@
 import Section from "../ui/Section";
 import ResilientImage from "../ui/ResilientImage";
+import { GITHUB_SECTION } from "./githubData";
+import "./github.css";
 
 export default function GithubSection() {
   return (
-    <Section id="github" title="GitHub" subtitle="Contribution graph and profile stats placeholders.">
+    <Section id={GITHUB_SECTION.id} title={GITHUB_SECTION.title} subtitle={GITHUB_SECTION.subtitle}>
       <div className="grid gap-4 lg:grid-cols-2">
         <ResilientImage
           className="w-full rounded-xl border border-white/10 bg-slate-950 p-2"

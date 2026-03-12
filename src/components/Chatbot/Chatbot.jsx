@@ -1,6 +1,8 @@
 import { Bot, MessageSquare, Send, X } from "lucide-react";
+import { CHATBOT_WIDGET } from "./chatbotData";
+import "./chatbot.css";
 
-export default function ChatWidget({
+export default function Chatbot({
   chatOpen,
   setChatOpen,
   messages,
@@ -16,7 +18,7 @@ export default function ChatWidget({
         type="button"
         onClick={() => setChatOpen(true)}
         className="chat-fab"
-        aria-label="Open chatbot"
+        aria-label={CHATBOT_WIDGET.openAriaLabel}
       >
         <Bot />
       </button>
@@ -26,7 +28,7 @@ export default function ChatWidget({
           <div className="chat-head">
             <div className="flex items-center gap-2">
               <MessageSquare size={16} />
-              <p className="font-heading">Portfolio AI Chat</p>
+              <p className="font-heading">{CHATBOT_WIDGET.title}</p>
             </div>
           </div>
           <div className="chat-body">
@@ -47,8 +49,8 @@ export default function ChatWidget({
               type="button"
               className="chat-close chat-close-inline"
               onClick={() => setChatOpen(false)}
-              aria-label="Close chatbot"
-              title="Close chat"
+              aria-label={CHATBOT_WIDGET.closeAriaLabel}
+              title={CHATBOT_WIDGET.closeTitle}
             >
               <X size={14} />
             </button>
@@ -56,7 +58,7 @@ export default function ChatWidget({
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
               className="chat-input"
-              placeholder="Ask about skills, projects, contact..."
+              placeholder={CHATBOT_WIDGET.inputPlaceholder}
             />
             <button
               type="submit"

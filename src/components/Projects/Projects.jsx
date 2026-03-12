@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { ExternalLink, Github, Plus } from "lucide-react";
 import Section from "../ui/Section";
+import { PROJECTS_SECTION } from "./projectsData";
+import "./projects.css";
 
 export default function ProjectsSection({
   projectCategories,
@@ -11,9 +13,9 @@ export default function ProjectsSection({
 }) {
   return (
     <Section
-      id="projects"
-      title="Projects"
-      subtitle="Filter projects by category."
+      id={PROJECTS_SECTION.id}
+      title={PROJECTS_SECTION.title}
+      subtitle={PROJECTS_SECTION.subtitle}
       action={(
         <button
           type="button"
